@@ -1,0 +1,12 @@
+{
+    "name": "ralf/kr-csv-table",
+    "require": {
+        "zendframework/zendframework": "^2.5"
+    },
+    "authors": [
+        {
+            "name": "Ralf Kreste",
+            "email": "ralf.krestel@web.de"
+        }
+    ]
+}
