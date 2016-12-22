@@ -1,90 +1,90 @@
 <?php
 
-namespace krCsvTable\CsvTable;
+namespace ZfcExplore\Table;
 
 use Zend\Stdlib\AbstractOptions;
-class CsvOptions extends AbstractOptions{
-	
+class Options extends AbstractOptions{
+
 	/**
 	 * Turn off strict options mode
 	 */
 	protected $__strictMode__ = false;
-	
+
 	/**
 	 * @var string
 	 */
 	protected $table;
-	
+
 	/**
 	 * @var columns
 	 */
 	protected $columns = array();
-	
+
 	/**
 	 * @var array
 	 */
 	protected $conditions = array();
-	
+
 	/**
 	 * @var array
 	 */
 	protected $id = array();
-	
+
 	/**
 	 * @var string
 	 */
-	protected $path; 
-	
+	protected $path;
+
 	/**
 	 * @see Entspricht des maximalen Indexwertes. Vergleichswert für jede CSV Spalte; Eine spalte muss mindestens $csvQuantity breit sein.
 	 * @var int
 	 */
 	protected $csvQuantity = 0;
-	
+
 	/**
 	 * @see Entspricht der Anzahl der Namensfelder.
 	 * @var unknown
 	 */
 	protected $dbQuantity = 0;
-	
+
 	/**
 	 * @var int
 	 */
 	protected $csvRowCount = 0;
-	
+
 	/**
 	 * @var int
 	 */
 	protected $dbRowCount = 0;
-	
+
 	/**
 	 * @see which mode should this table executed
 	 * @var string INSERTMODE|UPDATEMODE|DELETEMODE
 	 */
 	protected $mode = CsvTable::INSERTMODE;
-	
+
 	/**
 	 * @var string | Clousur | Where = null
 	 */
 	protected $where;
-	
+
 	/**
 	 * default delimiter for csv-datei
 	 * @var string
 	 */
 	protected $delimiter = '|';
-	
+
 	/**
 	 * default enclosure
 	 */
 	protected $enclosure = '\\';
-	
+
 	/**
 	 * removed the difference between csvContent and dbContent in db table.
 	 * @var bool
 	 */
 	protected $transClean = false;
-	
+
 	/**
 	 * @return the $table
 	 */
@@ -100,18 +100,18 @@ class CsvOptions extends AbstractOptions{
 	}
 
 	/**
-	 * 
+	 *
 	 * @param array $options
 	 */
 	public function __construct($options){
-	
+
 		parent::__construct($options);
 		$this->columns = $options['columns'];
 		$this->conditions =  array_column($options['columns'], 'condition', 'index');
 		$this->csvQuantity = max(array_column($options['columns'], 'index'))+1;
 		$this->dbQuantity = count(array_column($options['columns'], 'name'));
 	}
-	
+
 	/**
 	 * @return the $columns
 	 */
@@ -172,7 +172,7 @@ class CsvOptions extends AbstractOptions{
 	 * @param string | array  $id
 	 */
 	public function setId($id) {
-		
+
 		is_string($id)?$this->id[] = $id:$this->id = $id;
 	}
 
