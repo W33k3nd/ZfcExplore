@@ -1,18 +1,24 @@
 <?php
+/**
+ * Created by PhpStorm.
+ * User: ralf
+ * Date: 02.01.17
+ * Time: 11:52
+ */
+namespace ZfcExplore;
 
-namespace zfcExplore\Table;
-
+use Zend\Db\Adapter\AdapterInterface;
 use Zend\Db\TableGateway\AbstractTableGateway;
-use krCsvTable\PluginManager\PluginFactory;
+use ZfcExplore\PluginManager\PluginFactory;
 
 
-class Grid extends AbstractTableGateway{
+class Explore extends AbstractTableGateway{
 
 
 	//MODES
-	CONST INSERTMODE = 'insertCSV';
-	CONST UPDATEMODE = 'updateCSV';
-	CONST DELETEMODE = 'deleteCSV';
+	CONST INSERTMODE = 'insert';
+	CONST UPDATEMODE = 'update';
+	CONST DELETEMODE = 'delete';
 
 	//Events
 	/**
@@ -54,29 +60,30 @@ class Grid extends AbstractTableGateway{
 	/**
 	 * @var CsvOptions
 	 */
-	private $options;
+	private $option;
 
-	/**
-	 *
-	 * @param Zend\Db\Adapter\AdapterInterface
-	 * @param array $option
-	 */
-	public function __construct(\Zend\Db\Adapter\AdapterInterface $adapter, CsvOptions $options){
 
-		$this->options = $options;
+    /**
+     * Explore constructor.
+     * @param AdapterInterface $adapter
+     * @param Option $option
+     * @throws \Exception
+     */
+	public function __construct(AdapterInterface $adapter, Option $option){
 
-		if(!method_exists($this, ($this->options->getMode()))){
+		$this->option = $option;
+
+		if(!method_exists($this, ($this->option->getMode()))){
 			throw new \Exception('Options mode isn\'t callable!');
 		}
-		elseif ($this->options->getMode() == self::UPDATEMODE && !$this->options->getId()){
-			throw new \Exception("Update Mode necessary id option");
+		elseif ($this->option->getMode() == self::UPDATEMODE && !$this->option->getId()){
+			throw new \Exception("Update Mode required id option");
 		}
 
 		$this->adapter = $adapter;
-		$this->table = $this->options->getTable();
-		$this->columns = array_column($this->options->getColumns(), 'name');
+		$this->table = $this->option->getTable();
+		$this->columns = array_column($this->option->getColumns(), 'name');
 		parent::initialize();
-
 	}
 
 	/**
@@ -88,21 +95,21 @@ class Grid extends AbstractTableGateway{
 		if($this->isCsvContent)
 			return;
 
-		if(!file_exists($this->options->getPath())){
+		if(!file_exists($this->option->getPath())){
 			$this->featureSet->apply(self::FILENOTFOUND, array());
 			return;
 		}
 
-		$handle = fopen($this->options->getPath(), 'r');
+		$handle = fopen($this->option->getPath(), 'r');
 
-		while (($row = fgetcsv($handle, 0, $this->options->getDelimiter(), $this->options->getEnclosure()))){
+		while (($row = fgetcsv($handle, 0, $this->option->getDelimiter(), $this->option->getEnclosure()))){
 
-			if(count($row) < $this->options->getCsvQuantity()){
+			if(count($row) < $this->option->getCsvQuantity()){
 // 				$this->getEventManager()->trigger(self::READFAIL, $this, array('row'=> $row, 'exception'=>new \Exception('Not equal Columns quantity! ('.count($row).'|'.$this->quantity.')')));
 				continue;
 			}
 			//first, check all conditions.
-			foreach ($this->options->getConditions() as $index => $condition){
+			foreach ($this->option->getConditions() as $index => $condition){
 				$condition = PluginFactory::getConditionPlugin()->get($condition[0], $condition[1]);
 				$condition->setActualRow($row);
 				$condition->setIndex($index);
@@ -112,7 +119,7 @@ class Grid extends AbstractTableGateway{
 			}
 
 			$newRow = array();
-			foreach ($this->options->getColumns() as $cols){
+			foreach ($this->option->getColumns() as $cols){
 
 				if(array_key_exists('method', $cols)){
 
@@ -143,7 +150,7 @@ class Grid extends AbstractTableGateway{
 		}
 
 		fclose($handle);
-		$this->options->setCsvRowCount(count($this->csvContent));
+		$this->option->setCsvRowCount(count($this->csvContent));
 		$this->isCsvContent = true;
 
 	}
@@ -158,20 +165,20 @@ class Grid extends AbstractTableGateway{
 		if($this->isDbContent)
 			return ;
 
-		$id = array_flip($this->options->getId());
+		$id = array_flip($this->option->getId());
 		array_walk($id, function(&$item, $key, $order){
 			$item = $order;
 		}, 'ASC');
 
-		$select = $this->sql->select()->columns($this->columns)->where($this->options->getWhere())->order($id);
+		$select = $this->sql->select()->columns($this->columns)->where($this->option->getWhere())->order($id);
 		$result = $this->selectWith($select);
 		$this->dbContent = $result->toArray();
-		$this->options->setDbRowCount(count($this->dbContent));
+		$this->option->setDbRowCount(count($this->dbContent));
 		$this->isDbContent = true;
 	}
 
 	/**
-	 * Execute specific mode for csv Content
+	 * Execute specific mode for import data
 	 */
 	public function executeMode(){
 
@@ -182,22 +189,22 @@ class Grid extends AbstractTableGateway{
 
 		$this->featureSet->apply('singular', array());
 		switch ($this->getOptions()->getMode()){
-			case CsvTable::UPDATEMODE:
-				$this->updateCSV();
+			case self::UPDATEMODE:
+				$this->updateData();
 				break;
-			case CsvTable::INSERTMODE:
-				$this->insertCsv();
+			case self::INSERTMODE:
+				$this->insertData();
 				break;
-			case CsvTable::DELETEMODE:
-				$this->deleteCsv();
+			case self::DELETEMODE:
+				$this->deleteData();
 				break;
 		}
 
-		if($this->options->getTransclean()){
+		if($this->option->getTransclean()){
 
 			$temp = $this->csvContent;
 			$this->csvContent = $this->dbContent;
-			$this->deleteCSV();
+			$this->deleteData();
 			$this->csvContent = $temp;
 		}
 	}
@@ -205,9 +212,9 @@ class Grid extends AbstractTableGateway{
 	 * @see tries to insert each row if they doesn't exists
 	 * @return array
 	 */
-	private function insertCSV(){
+	private function insertData(){
 
-		$ids = $this->options->getId();
+		$ids = $this->option->getId();
 
 		//compare both tables and remove equal rows
 		foreach ($this->csvContent as $csvKey => $csvRow){
@@ -241,11 +248,11 @@ class Grid extends AbstractTableGateway{
 	/**
 	 * @see update each row with the equal id
 	 */
-	private function updateCSV(){
+	private function updateData(){
 
 		//compare both tables and remove equal rows (UpdateMode)
-		$cols = array_diff($this->columns, $this->options->getId());
-		$ids = $this->options->getId();
+		$cols = array_diff($this->columns, $this->option->getId());
+		$ids = $this->option->getId();
 		$notFoundInDb = array();
 
 		foreach ($this->csvContent as $csvKey => $csvRow){
@@ -296,15 +303,15 @@ class Grid extends AbstractTableGateway{
 		foreach ($notFoundInDb as $row){
 			$this->csvContent[] = $row;
 		}
-		$this->insertCSV();
+		$this->insertData();
 	}
 
 	/**
 	 * TODO: testen
 	 */
-	private function deleteCSV(){
+	private function deleteData(){
 
-		$ids = $this->options->getId();
+		$ids = $this->option->getId();
 		$notFoundInDb = array();
 
 		try{
@@ -320,6 +327,13 @@ class Grid extends AbstractTableGateway{
 
 // 		$this->featureSet->apply('finish', array());
 	}
+
+    /**
+     * @return bool
+     */
+	public function hasReferences(){
+	    return (bool) count($this->option->getReferences());
+    }
 
 	/**
 	 *
@@ -356,10 +370,17 @@ class Grid extends AbstractTableGateway{
 
 	/**
 	 *
-	 * @return CsvOptions
+	 * @return Option
 	 */
 	public function getOptions(){
 
-		return $this->options;
+		return $this->getOption();
 	}
+
+    /**
+     * @return Option
+     */
+	public function getOption(){
+	    return $this->option;
+    }
 }

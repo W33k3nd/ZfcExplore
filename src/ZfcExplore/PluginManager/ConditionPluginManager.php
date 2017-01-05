@@ -1,6 +1,6 @@
 <?php
 
-namespace krCsvTable\PluginManager;
+namespace ZfcExplore\PluginManager;
 
 
 use Zend\ServiceManager\AbstractPluginManager;
@@ -24,7 +24,7 @@ class ConditionPluginManager extends AbstractPluginManager{
 	 */
 	public function validatePlugin($plugin) {
 		// TODO Auto-generated method stub
-		if($plugin instanceof \krCsvTable\PluginManager\Conditions\ConditionInterface )
+		if($plugin instanceof \ZfcExplore\PluginManager\Conditions\ConditionInterface )
 				return;
 		
 		throw new \InvalidArgumentException(sprintf('Plugin of type %s is invalid, must implement ConditionInterface', (is_object($plugin) ? get_class($plugin) : gettype($plugin))));

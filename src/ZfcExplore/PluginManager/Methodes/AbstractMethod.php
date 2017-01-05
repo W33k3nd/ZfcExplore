@@ -1,6 +1,6 @@
 <?php
 
-namespace krCsvTable\PluginManager\Methodes;
+namespace ZfcExplore\PluginManager\Methodes;
 
 abstract class AbstractMethod implements MethodInterface{
 	
@@ -17,7 +17,7 @@ abstract class AbstractMethod implements MethodInterface{
 	
 	/**
 	 * 
-	 * @param unknown $row
+	 * @param array $row
 	 */
 	public function setActualRow(&$row){
 		$this->actualRow = $row;

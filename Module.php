@@ -7,7 +7,7 @@
  * @license   http://framework.zend.com/license/new-bsd New BSD License
  */
 
-namespace krCsvTable;
+namespace ZfcExplore;
 
 class Module
 {
@@ -20,10 +20,13 @@ class Module
     public function getAutoloaderConfig()
     {
         return array(
+          'Zend\Loader\ClassMapAutoloader' => array(
+                __DIR__ . '/autoload_classmap.php',
+            ),
             'Zend\Loader\StandardAutoloader' => array(
                 'namespaces' => array(
                     __NAMESPACE__ => __DIR__ . '/src/' . __NAMESPACE__,
-                ),
+                )
             ),
         );
     }

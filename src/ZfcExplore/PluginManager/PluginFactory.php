@@ -1,30 +1,30 @@
 <?php
 
-namespace krCsvTable\PluginManager;
+namespace ZfcExplore\PluginManager;
 
 class PluginFactory{
 	
 	/**
 	 * 
-	 * @var \krCsvTable\PluginManager\ConditionPluginManager
+	 * @var \ZfcExplore\PluginManager\ConditionPluginManager
 	 */
 	public static $ConditionPlugin = null;
 	
 	
 	/**
 	 * 
-	 * @var \krCsvTable\PluginManager\MethodPluginManager
+	 * @var \ZfcExplore\PluginManager\MethodPluginManager
 	 */
 	public static $MethodPlugin = null; 
 	
 	/**
 	 * 
-	 * @return \krCsvTable\PluginManager\ConditionPluginManager
+	 * @return \ZfcExplore\PluginManager\ConditionPluginManager
 	 */
 	public static function getConditionPlugin(){
 		
 		if(static::$ConditionPlugin === null){
-			static ::$ConditionPlugin = new ConditionPluginManager();
+			static::$ConditionPlugin = new ConditionPluginManager();
 		}
 		
 		return static::$ConditionPlugin;
@@ -32,12 +32,12 @@ class PluginFactory{
 	
 	/**
 	 * 
-	 * @return \krCsvTable\PluginManager\MethodPluginManager
+	 * @return \ZfcExplore\PluginManager\MethodPluginManager
 	 */
 	public static function getMethodPlugin(){
 	
 		if(static::$MethodPlugin === null){
-			static ::$MethodPlugin = new MethodPluginManager();
+			static::$MethodPlugin = new MethodPluginManager();
 		}
 	
 		return static::$MethodPlugin;

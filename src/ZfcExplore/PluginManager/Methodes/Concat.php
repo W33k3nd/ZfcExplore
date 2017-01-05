@@ -1,5 +1,5 @@
 <?php
-namespace krCsvTable\PluginManager\Methodes;
+namespace ZfcExplore\PluginManager\Methodes;
 
 class Concat extends AbstractMethod{
 	

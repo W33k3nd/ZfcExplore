@@ -1,0 +1,6 @@
+<?php
+
+$settings = [
+    'explore_ore'=> __DIR__. '../src/ZfcExplore/Table'
+];
+return array('explore' => $settings);

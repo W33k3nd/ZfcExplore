@@ -1,6 +1,6 @@
 <?php
 
-namespace krCsvTable\PluginManager\Conditions;
+namespace ZfcExplore\PluginManager\Conditions;
 
 abstract class AbstractCondition implements ConditionInterface{
 	

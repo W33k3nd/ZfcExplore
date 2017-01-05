@@ -1,12 +1,14 @@
 {
-    "name": "ralf/kr-csv-table",
-    "require": {
-        "zendframework/zendframework": "^2.5"
-    },
+    "name": "W33k3nd/ZfcExplore",
+    "description": "Import Filedata into database with flexible conditions",
     "authors": [
         {
-            "name": "Ralf Kreste",
+            "name": "Ralf Krestel",
             "email": "ralf.krestel@web.de"
         }
-    ]
+    ],
+    "require": {
+        "php": ">=5.5",
+        "zendframework/zendframework": "^2.5"
+    }
 }

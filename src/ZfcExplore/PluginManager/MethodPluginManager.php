@@ -1,13 +1,23 @@
 <?php
 
-namespace krCsvTable\PluginManager;
+namespace ZfcExplore\PluginManager;
 
 use Zend\ServiceManager\AbstractPluginManager;
-use krCsvTable\PluginManager\Methodes\MethodInterface;
+use Zend\ServiceManager\Factory\InvokableFactory;
+use ZfcExplore\PluginManager\Methodes\MethodInterface;
 class MethodPluginManager extends AbstractPluginManager{
-	
-	protected $invokableClasses = array(
-		'concat' => 'krCsvTable\PluginManager\Methodes\Concat'
+    //zf3 version
+//    protected $aliases = array(
+//        'concat' => \ZfcExplore\PluginManager\Methodes\Concat::class
+//    );
+
+    protected $invokableClasses = array(
+        'concat' => \ZfcExplore\PluginManager\Methodes\Concat::class
+    );
+
+
+	protected $factories = array(
+		\ZfcExplore\PluginManager\Methodes\Concat::class => InvokableFactory::class
 	);
 	
 	/**

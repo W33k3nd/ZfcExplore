@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit colors="true" bootstrap="Bootstrap.php">
-		<testsuite name="krCsvTableTest">
-			<directory>./krCsvTable</directory>
+		<testsuite name="ZfcExploreTest">
+			<directory>./ZfcExploreTest</directory>
 		</testsuite>
 </phpunit>

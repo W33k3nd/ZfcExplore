@@ -8,6 +8,11 @@ use Zend\EventManager\EventManager;
 use Zend\EventManager\EventManagerAwareInterface;
 use Zend\Db\Adapter\AdapterAwareInterface;
 
+/**
+ * Class GridManager
+ * @package ZfcExplore\Table
+ * @deprecated
+ */
 class GridManager implements EventManagerAwareInterface, AdapterAwareInterface{
 
 
@@ -105,12 +110,14 @@ class GridManager implements EventManagerAwareInterface, AdapterAwareInterface{
 
 	}
 
-	/* (non-PHPdoc)
-	 * @see \Zend\Db\Adapter\AdapterAwareInterface::setDbAdapter()
-	 */
+    /**
+     * @param \Zend\Db\Adapter\Adapter $adapter
+     * @return $this
+     */
 	public function setDbAdapter(\Zend\Db\Adapter\Adapter $adapter) {
 		// TODO Auto-generated method stub
 		$this->adapter = $adapter;
+		return $this;
 
 	}
 

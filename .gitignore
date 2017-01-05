@@ -1,0 +1,4 @@
+/vendor
+/config/local.php.dist
+/data/import
+/src/ZfcExplore/Table/*

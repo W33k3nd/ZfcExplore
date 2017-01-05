@@ -1,6 +1,6 @@
 <?php
 
-namespace krCsvTable\PluginManager\Methodes;
+namespace ZfcExplore\PluginManager\Methodes;
 
 interface MethodInterface {
 	

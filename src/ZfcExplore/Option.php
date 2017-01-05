@@ -1,15 +1,19 @@
 <?php
 
-namespace ZfcExplore\Table;
+namespace ZfcExplore;
 
+use Zend\Db\Sql\Where;
 use Zend\Stdlib\AbstractOptions;
-class Options extends AbstractOptions{
+class Option extends AbstractOptions{
 
 	/**
 	 * Turn off strict options mode
 	 */
 	protected $__strictMode__ = false;
 
+
+	const REFERENCE_TYPE_TABLE = 2;
+	const REFERENCE_TYPE_IMPORT = 4;
 	/**
 	 * @var string
 	 */
@@ -25,6 +29,11 @@ class Options extends AbstractOptions{
 	 */
 	protected $conditions = array();
 
+    /**
+     * @var array
+     */
+	protected $references = array();
+
 	/**
 	 * @var array
 	 */
@@ -39,11 +48,11 @@ class Options extends AbstractOptions{
 	 * @see Entspricht des maximalen Indexwertes. Vergleichswert für jede CSV Spalte; Eine spalte muss mindestens $csvQuantity breit sein.
 	 * @var int
 	 */
-	protected $csvQuantity = 0;
+	protected $importQuantity = 0;
 
 	/**
 	 * @see Entspricht der Anzahl der Namensfelder.
-	 * @var unknown
+	 * @var int
 	 */
 	protected $dbQuantity = 0;
 
@@ -61,9 +70,10 @@ class Options extends AbstractOptions{
 	 * @see which mode should this table executed
 	 * @var string INSERTMODE|UPDATEMODE|DELETEMODE
 	 */
-	protected $mode = CsvTable::INSERTMODE;
+	protected $mode = Explore::INSERTMODE;
 
 	/**
+     * @todo why clousur?
 	 * @var string | Clousur | Where = null
 	 */
 	protected $where;
@@ -80,10 +90,10 @@ class Options extends AbstractOptions{
 	protected $enclosure = '\\';
 
 	/**
-	 * removed the difference between csvContent and dbContent in db table.
+	 * removed the difference between import data and db data.
 	 * @var bool
 	 */
-	protected $transClean = false;
+	protected $trans_clean = false;
 
 	/**
 	 * @return the $table
@@ -105,11 +115,12 @@ class Options extends AbstractOptions{
 	 */
 	public function __construct($options){
 
-		parent::__construct($options);
 		$this->columns = $options['columns'];
 		$this->conditions =  array_column($options['columns'], 'condition', 'index');
-		$this->csvQuantity = max(array_column($options['columns'], 'index'))+1;
+		$this->importQuantity = max(array_column($options['columns'], 'index'))+1;
 		$this->dbQuantity = count(array_column($options['columns'], 'name'));
+		$this->references = array_column($options['columns'], 'detect_reference');
+		parent::__construct($options);
 	}
 
 	/**
@@ -126,6 +137,14 @@ class Options extends AbstractOptions{
 		return $this->conditions;
 	}
 
+    /**
+     * @return array
+     */
+    public function getReferences()
+    {
+        return $this->references;
+    }
+
 	/**
 	 * @return the $id
 	 */
@@ -141,10 +160,10 @@ class Options extends AbstractOptions{
 	}
 
 	/**
-	 * @return the $csvQuantity
+	 * @return the $importQuantity
 	 */
 	public function getCsvQuantity() {
-		return $this->csvQuantity;
+		return $this->importQuantity;
 	}
 
 	/**
@@ -168,12 +187,21 @@ class Options extends AbstractOptions{
 		$this->conditions = $conditions;
 	}
 
-	/**
-	 * @param string | array  $id
-	 */
+    /**
+     * @param string | array $id
+     * @throws \Exception
+     */
 	public function setId($id) {
 
-		is_string($id)?$this->id[] = $id:$this->id = $id;
+	    if($id instanceof \Traversable){
+	        $this->id = $id;
+        }
+        elseif (is_string($id)){
+	        $this->id[] = $id;
+        }
+        else{
+            throw new \Exception('Only instanceof \Traversable or string are allowed for id. '.gettype($id).' type given!');
+        }
 	}
 
 	/**
@@ -201,14 +229,14 @@ class Options extends AbstractOptions{
 	 * @return the $transClean
 	 */
 	public function getTransClean() {
-		return $this->transClean;
+		return $this->trans_clean;
 	}
 
 	/**
 	 * @param boolean $transClean
 	 */
 	public function setTransClean($transClean) {
-		$this->transClean = $transClean;
+		$this->trans_clean = $transClean;
 	}
 
 	/**
