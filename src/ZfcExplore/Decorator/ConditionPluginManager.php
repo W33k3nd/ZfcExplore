@@ -1,6 +1,6 @@
 <?php
 
-namespace ZfcExplore\PluginManager;
+namespace ZfcExplore\Decorator;
 
 
 use Zend\ServiceManager\AbstractPluginManager;
@@ -30,6 +30,4 @@ class ConditionPluginManager extends AbstractPluginManager{
 		throw new \InvalidArgumentException(sprintf('Plugin of type %s is invalid, must implement ConditionInterface', (is_object($plugin) ? get_class($plugin) : gettype($plugin))));
 	}
 
-	
-	
 }

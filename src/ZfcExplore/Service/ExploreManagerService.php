@@ -1,6 +1,5 @@
 <?php
 /**
- * Created by PhpStorm.
  * User: ralf
  * Date: 02.01.17
  * Time: 13:05

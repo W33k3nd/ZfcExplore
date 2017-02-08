@@ -114,6 +114,20 @@ class ExploreManager implements EventManagerAwareInterface, AdapterAwareInterfac
     }
 
     /**
+     * This method execute an Explore
+     *
+     * @param Explore $explore
+     */
+    private function executeTable(Explore $explore){
+
+        if($explore->hasReferences()){
+            foreach ($explore->getReferences() as $reference){
+
+            }
+        }
+    }
+
+    /**
      * @param string $name
      */
     public function detachTable($name){
@@ -130,7 +144,7 @@ class ExploreManager implements EventManagerAwareInterface, AdapterAwareInterfac
     public function attachTable($name, $table){
 
         if(is_array($table)){
-            $options = new Option($table);
+            $options = new Options($table);
             $table = new Explore($this->adapter, $options);
         }
 

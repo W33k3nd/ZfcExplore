@@ -1,9 +1,7 @@
 <?php
 /**
- * Created by PhpStorm.
  * User: ralf
  * Date: 02.01.17
- * Time: 11:52
  */
 namespace ZfcExplore;
 
@@ -31,12 +29,6 @@ class Explore extends AbstractTableGateway{
 
 
 	/**
-	 * Standard utf-8 encoding
-	 * @var string
-	 */
-	private $encode = "UTF-8";
-
-	/**
 	 * @var bool
 	 */
 	private $isCsvContent = false;
@@ -47,7 +39,6 @@ class Explore extends AbstractTableGateway{
 	private $isDbContent = false;
 
 	/**
-	 *
 	 * @var array
 	 */
 	private $csvContent = array();
@@ -58,9 +49,21 @@ class Explore extends AbstractTableGateway{
 	private $dbContent = array();
 
 	/**
-	 * @var CsvOptions
+	 * @var Options
 	 */
 	private $option;
+	
+	/**
+	 * List of all given columns.
+	 * @var array<Col>
+	 */
+	private $columnsObjects = array();
+	
+	/**
+	 * 
+	 * @var ActualRow
+	 */
+	private $actualRow;
 
 
     /**
@@ -69,7 +72,7 @@ class Explore extends AbstractTableGateway{
      * @param Option $option
      * @throws \Exception
      */
-	public function __construct(AdapterInterface $adapter, Option $option){
+	public function __construct(AdapterInterface $adapter, Options $option){
 
 		$this->option = $option;
 
@@ -82,7 +85,11 @@ class Explore extends AbstractTableGateway{
 
 		$this->adapter = $adapter;
 		$this->table = $this->option->getTable();
-		$this->columns = array_column($this->option->getColumns(), 'name');
+		$this->actualRow = new ActualRow();
+		$this->setColumns($this->option->getColumns());
+		    
+// 		$this->columns = array_column($this->option->getColumns(), 'name');
+		
 		parent::initialize();
 	}
 
@@ -104,45 +111,62 @@ class Explore extends AbstractTableGateway{
 
 		while (($row = fgetcsv($handle, 0, $this->option->getDelimiter(), $this->option->getEnclosure()))){
 
-			if(count($row) < $this->option->getCsvQuantity()){
+			$this->actualRow->setActualRow($row);
+			
+			if($this->actualRow->count() < $this->option->getCsvQuantity()){
 // 				$this->getEventManager()->trigger(self::READFAIL, $this, array('row'=> $row, 'exception'=>new \Exception('Not equal Columns quantity! ('.count($row).'|'.$this->quantity.')')));
 				continue;
 			}
-			//first, check all conditions.
-			foreach ($this->option->getConditions() as $index => $condition){
-				$condition = PluginFactory::getConditionPlugin()->get($condition[0], $condition[1]);
-				$condition->setActualRow($row);
-				$condition->setIndex($index);
-				if(!$condition->isValid()){
-						continue 2;
-				}
+			
+			foreach ($this->columnsObjects as $object){
+			    
+			    if(!$object->validCondition()){
+			        continue 2;
+			    }
 			}
-
+			
 			$newRow = array();
-			foreach ($this->option->getColumns() as $cols){
-
-				if(array_key_exists('method', $cols)){
-
-					if(is_callable($cols['method'])){
-						$newRow[$cols['name']] =  $this->convert($cols['method']($row));
-					}
-					elseif(is_numeric($cols['method']) || is_string($cols['method'])){
-						$newRow[$cols['name']] = $cols['method'];
-					}
-					else{
-						$method  = PluginFactory::getMethodPlugin()->get($cols['method'][0], $cols['method'][1]);
-						$method->setIndex($cols['index']);
-						$method->setActualRow($row);
-
-						$newRow[$cols['name']] = $this->convert($method->getValue());
-
-					}
-				}
-				elseif(!empty($cols['name']) && array_key_exists($cols['index'], $row)){
-					$newRow[$cols['name']] = $this->convert($row[$cols['index']]);
-				}
-
+			foreach ($this->columnsObjects as $object){
+			    if(!$object->hasColumnName()){
+			        continue;
+			    }
+			    $newRow[$object->getColumnName()] = $object->result();
 			}
+// 			//first, check all conditions.
+// 			foreach ($this->option->getConditions() as $index => $condition){
+// 				$condition = PluginFactory::getConditionPlugin()->get($condition[0], $condition[1]);
+// 				$condition->setActualRow($row);
+// 				$condition->setIndex($index);
+// 				if(!$condition->isValid()){
+// 						continue 2;
+// 				}
+// 			}
+
+// 			$newRow = array();
+// 			foreach ($this->option->getColumns() as $cols){
+
+// 				if(array_key_exists('method', $cols)){
+
+// 					if(is_callable($cols['method'])){
+// 						$newRow[$cols['name']] =  $this->convert($cols['method']($row));
+// 					}
+// 					elseif(is_numeric($cols['method']) || is_string($cols['method'])){
+// 						$newRow[$cols['name']] = $cols['method'];
+// 					}
+// 					else{
+// 						$method  = PluginFactory::getMethodPlugin()->get($cols['method'][0], $cols['method'][1]);
+// 						$method->setIndex($cols['index']);
+// 						$method->setActualRow($row);
+
+// 						$newRow[$cols['name']] = $this->convert($method->getValue());
+
+// 					}
+// 				}
+// 				elseif(!empty($cols['name']) && array_key_exists($cols['index'], $row)){
+// 					$newRow[$cols['name']] = $this->convert($row[$cols['index']]);
+// 				}
+
+// 			}
 			if(empty($newRow))
 				continue;
 
@@ -328,6 +352,39 @@ class Explore extends AbstractTableGateway{
 // 		$this->featureSet->apply('finish', array());
 	}
 
+	/**
+	 * 
+	 * @param array $columns
+	 */
+	public function setColumns($columns){
+	    
+	    foreach ($columns as $column){
+	        if(!isset($column['name']) || empty($column['name'])){
+	            continue;
+             }
+             $this->addColumn($column['name'], $column);
+	    }
+	    
+	}
+	
+	/**
+	 * 
+	 * @param string $name
+	 * @param array $options
+	 */
+	public function addColumn($name, $option){
+	    
+	    $option['name'] = $name;
+        
+	    if(!in_array($name,  $this->columns)){
+	        $this->columns[] = $name;
+	    }
+	    
+	    $col = new Col($option);
+	    $col->setActualRow($this->actualRow);
+	    $this->columnsObjects[$option['index']] = $col;
+	}
+	
     /**
      * @return bool
      */
@@ -335,18 +392,21 @@ class Explore extends AbstractTableGateway{
 	    return (bool) count($this->option->getReferences());
     }
 
+    /**
+     * @return array
+     */
+    public function getReferences(){
+	    return $this->option->getReferences();
+    }
 	/**
 	 *
+	 * @deprecated Wird durch Plugin ersetzt.
 	 * @param string $str
 	 * @return string
 	 */
 	private function convert($str){
 
-		if(mb_check_encoding($str, $this->encode))
 			return $str;
-
-		return utf8_encode($str);
-
 	}
 
 	/**

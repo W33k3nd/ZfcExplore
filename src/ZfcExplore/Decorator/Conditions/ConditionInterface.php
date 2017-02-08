@@ -1,6 +1,6 @@
 <?php
 
-namespace ZfcExplore\PluginManager\Conditions;
+namespace ZfcExplore\Decorator\Conditions;
 
 interface ConditionInterface {
 	

@@ -1,6 +1,6 @@
 <?php
 
-namespace ZfcExplore\PluginManager;
+namespace ZfcExplore\Decorator;
 
 use Zend\ServiceManager\AbstractPluginManager;
 use Zend\ServiceManager\Factory\InvokableFactory;
@@ -37,6 +37,5 @@ class MethodPluginManager extends AbstractPluginManager{
 		
 		throw new \InvalidArgumentException('Invalid MethodPlugin');
 	}
-
 	
 }

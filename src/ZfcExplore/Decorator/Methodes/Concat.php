@@ -1,5 +1,5 @@
 <?php
-namespace ZfcExplore\PluginManager\Methodes;
+namespace ZfcExplore\Decorator\Methodes;
 
 class Concat extends AbstractMethod{
 	

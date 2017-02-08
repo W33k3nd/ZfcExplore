@@ -4,16 +4,13 @@ namespace ZfcExplore;
 
 use Zend\Db\Sql\Where;
 use Zend\Stdlib\AbstractOptions;
-class Option extends AbstractOptions{
+class Options extends AbstractOptions{
 
 	/**
 	 * Turn off strict options mode
 	 */
 	protected $__strictMode__ = false;
 
-
-	const REFERENCE_TYPE_TABLE = 2;
-	const REFERENCE_TYPE_IMPORT = 4;
 	/**
 	 * @var string
 	 */
@@ -28,7 +25,12 @@ class Option extends AbstractOptions{
 	 * @var array
 	 */
 	protected $conditions = array();
-
+	
+	/**
+	 * var array
+	 */
+	protected $methods = array();
+	
     /**
      * @var array
      */
@@ -94,6 +96,7 @@ class Option extends AbstractOptions{
 	 * @var bool
 	 */
 	protected $trans_clean = false;
+	
 
 	/**
 	 * @return the $table
@@ -117,24 +120,39 @@ class Option extends AbstractOptions{
 
 		$this->columns = $options['columns'];
 		$this->conditions =  array_column($options['columns'], 'condition', 'index');
+		$this->methods = array_column($options['columns'], 'method', 'index');
 		$this->importQuantity = max(array_column($options['columns'], 'index'))+1;
 		$this->dbQuantity = count(array_column($options['columns'], 'name'));
-		$this->references = array_column($options['columns'], 'detect_reference');
+		$references = array_column($options['columns'], 'reference');
+		
+		foreach ($references as $reference){
+		    $this->references[] = new Reference($reference);
+		}
+		
 		parent::__construct($options);
 	}
 
 	/**
-	 * @return the $columns
+	 * @return array
 	 */
 	public function getColumns() {
 		return $this->columns;
 	}
 
 	/**
-	 * @return the $conditions
+	 * @return array
 	 */
 	public function getConditions() {
 		return $this->conditions;
+	}
+	
+	/**
+	 * 
+	 * @return array
+	 */
+	public function getMethods(){
+	    return $this->methods;
+	    
 	}
 
     /**
@@ -193,7 +211,7 @@ class Option extends AbstractOptions{
      */
 	public function setId($id) {
 
-	    if($id instanceof \Traversable){
+	    if(is_array($id) || $id instanceof \Traversable){
 	        $this->id = $id;
         }
         elseif (is_string($id)){

@@ -1,6 +1,6 @@
 <?php
 
-namespace ZfcExplore\PluginManager\Methodes;
+namespace ZfcExplore\Decorator\Methodes;
 
 interface MethodInterface {
 	
