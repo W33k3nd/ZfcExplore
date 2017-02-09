@@ -2,34 +2,35 @@
 
 namespace ZfcExplore\Decorator; 
 
-abstract class AbstractDecorator{
+use Zend\Stdlib\AbstractOptions;
+use ZfcExplore\Col;
+use ZfcExplore\ActualRow;
+abstract class AbstractDecorator extends AbstractOptions{
     
     /**
-     * Actual row
-     * @var array
+     * @var Col
      */
-    protected $actualRow;
-    
-    /**
-     * Actual index
-     */
-    protected $index;
+    protected $col;
     
     /**
      * 
-     * @param \ActualRow $actualRow
+     * @param Col $col
      */
-    public function setActualRow($actualRow){
-        $this->actualRow = $actualRow;
+    public function setCol(Col $col){
+        $this->col = $col;
     }
     
     /**
-     *
-     * @param int | string $index
+     * @return int
      */
-    public function setIndex($index){
-    
-        $this->index = $index;
+    public function getIndex(){
+        return $this->col->getIndex();
     }
     
+    /**
+     * @return ActualRow
+     */
+    public function getActualRow(){
+        return $this->col->getActualRow();
+    }
 }

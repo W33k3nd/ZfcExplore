@@ -7,7 +7,6 @@ namespace ZfcExplore;
 
 use Zend\Db\Adapter\AdapterInterface;
 use Zend\Db\TableGateway\AbstractTableGateway;
-use ZfcExplore\PluginManager\PluginFactory;
 
 
 class Explore extends AbstractTableGateway{
@@ -64,12 +63,17 @@ class Explore extends AbstractTableGateway{
 	 * @var ActualRow
 	 */
 	private $actualRow;
+	
+	/**
+	 * Wurde dieser Explore schon ausgeführt?
+	 */
+	private $done = FALSE;
 
 
     /**
      * Explore constructor.
      * @param AdapterInterface $adapter
-     * @param Option $option
+     * @param Options $option
      * @throws \Exception
      */
 	public function __construct(AdapterInterface $adapter, Options $option){
@@ -85,11 +89,9 @@ class Explore extends AbstractTableGateway{
 
 		$this->adapter = $adapter;
 		$this->table = $this->option->getTable();
-		$this->actualRow = new ActualRow();
 		$this->setColumns($this->option->getColumns());
+		$this->actualRow = new ActualRow($this->columns);
 		    
-// 		$this->columns = array_column($this->option->getColumns(), 'name');
-		
 		parent::initialize();
 	}
 
@@ -125,52 +127,11 @@ class Explore extends AbstractTableGateway{
 			    }
 			}
 			
-			$newRow = array();
 			foreach ($this->columnsObjects as $object){
-			    if(!$object->hasColumnName()){
-			        continue;
-			    }
-			    $newRow[$object->getColumnName()] = $object->result();
+			    $object->result();
 			}
-// 			//first, check all conditions.
-// 			foreach ($this->option->getConditions() as $index => $condition){
-// 				$condition = PluginFactory::getConditionPlugin()->get($condition[0], $condition[1]);
-// 				$condition->setActualRow($row);
-// 				$condition->setIndex($index);
-// 				if(!$condition->isValid()){
-// 						continue 2;
-// 				}
-// 			}
 
-// 			$newRow = array();
-// 			foreach ($this->option->getColumns() as $cols){
-
-// 				if(array_key_exists('method', $cols)){
-
-// 					if(is_callable($cols['method'])){
-// 						$newRow[$cols['name']] =  $this->convert($cols['method']($row));
-// 					}
-// 					elseif(is_numeric($cols['method']) || is_string($cols['method'])){
-// 						$newRow[$cols['name']] = $cols['method'];
-// 					}
-// 					else{
-// 						$method  = PluginFactory::getMethodPlugin()->get($cols['method'][0], $cols['method'][1]);
-// 						$method->setIndex($cols['index']);
-// 						$method->setActualRow($row);
-
-// 						$newRow[$cols['name']] = $this->convert($method->getValue());
-
-// 					}
-// 				}
-// 				elseif(!empty($cols['name']) && array_key_exists($cols['index'], $row)){
-// 					$newRow[$cols['name']] = $this->convert($row[$cols['index']]);
-// 				}
-
-// 			}
-			if(empty($newRow))
-				continue;
-
-			$this->csvContent[] = $newRow;
+			$this->csvContent[] = $this->actualRow->getColumnsData();
 		}
 
 		fclose($handle);
@@ -372,17 +333,19 @@ class Explore extends AbstractTableGateway{
 	 * @param string $name
 	 * @param array $options
 	 */
-	public function addColumn($name, $option){
+	public function addColumn($name = null, $option){
 	    
-	    $option['name'] = $name;
-        
-	    if(!in_array($name,  $this->columns)){
-	        $this->columns[] = $name;
+	    if($name != null){
+    	    $option['name'] = $name;
+	        
+    	    if(!in_array($name,  $this->columns)){
+    	        $this->columns[] = $name;
+    	    }
 	    }
-	    
+        
 	    $col = new Col($option);
-	    $col->setActualRow($this->actualRow);
-	    $this->columnsObjects[$option['index']] = $col;
+	    $col->setExplore($this);
+        $this->columnsObjects[] = $col;
 	}
 	
     /**
@@ -398,6 +361,14 @@ class Explore extends AbstractTableGateway{
     public function getReferences(){
 	    return $this->option->getReferences();
     }
+    
+    /**
+     * 
+     * @return array
+     */
+    public function getActualRow(){
+        return $this->actualRow;
+    }
 	/**
 	 *
 	 * @deprecated Wird durch Plugin ersetzt.
@@ -410,7 +381,7 @@ class Explore extends AbstractTableGateway{
 	}
 
 	/**
-	 * @return array
+	 * @return ActualRow
 	 */
 	public function getCsvContent(){
 
@@ -442,5 +413,12 @@ class Explore extends AbstractTableGateway{
      */
 	public function getOption(){
 	    return $this->option;
+    }
+    
+    /**
+     * @return boolean
+     */
+    public function isDone(){
+        return $this->done;
     }
 }

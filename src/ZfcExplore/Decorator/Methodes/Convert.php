@@ -1,7 +1,11 @@
 <?php
 namespace ZfcExplore\Decorator\Methodes;
 
-class Concat extends AbstractMethod{
+use Zend\Stdlib\StringWrapper\MbString;
+use Zend\Stdlib\StringWrapper\Iconv;
+use Zend\Stdlib\StringWrapper\AbstractStringWrapper;
+use Doctrine\Instantiator\Exception\InvalidArgumentException;
+class Convert extends AbstractMethod{
     
     /**
      * 
@@ -15,9 +19,30 @@ class Concat extends AbstractMethod{
      */
     private $decode;
     
-    public function __construct(){
+    /**
+     * 
+     * @var AbstractStringWrapper
+     */
+    private $wrapper;
+    
+    
+    /**
+     * 
+     * @param array $options
+     * @throws InvalidArgumentException
+     */
+    public function __construct($options){
         
-        //todo: valid php extension is installed
+        parent::__construct($options);
+        if(MbString::isSupported($this->encode, $this->decode)){
+            $this->wrapper = new MbString();
+        } elseif (Iconv::isSupported($this->encode, $this->decode)){
+            $this->wrapper = new Iconv();
+        } else {
+            throw new InvalidArgumentException('No supported decode -> encode ['.$this->decode.'->'.$this->encode.']');
+        }
+        
+        $this->wrapper->setEncoding($this->decode, $this->encode);
     }
     
     
@@ -25,14 +50,8 @@ class Concat extends AbstractMethod{
 	/* (non-PHPdoc)
      * @see \ZfcExplore\Decorator\Methodes\MethodInterface::getValue()
      */
-    public function getValue()
-    {
-        $value = $this->actualRow[$this->index];
-        if(is_numeric($value) || mb_check_encoding($value, $this->decode))
-			return $value;
-
-	    return mb_convert_encoding($value, $this->encode, $this->decode);
-        
+    public function getValue(){
+        return $this->wrapper->convert($this->getActualRow()[$this->getIndex()]);
     }
 
     /**

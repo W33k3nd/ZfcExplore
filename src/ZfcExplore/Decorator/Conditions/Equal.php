@@ -21,7 +21,7 @@ class Equal extends AbstractCondition{
 	public function isValid() {
 
 		
-		if($this->actualRow[$this->index] == $this->equal)
+		if($this->getActualRow()[$this->getIndex()] == $this->equal)
 			return true;
 		
 		return false;

@@ -5,18 +5,30 @@ namespace ZfcExplore;
 use ZfcExplore\Decorator\Conditions\AbstractCondition;
 use ZfcExplore\Decorator\PluginFactory;
 use ZfcExplore\Decorator\Methodes\AbstractMethod;
+
 class Col{
     
     /**
      * @var int
      */
-    private $col; 
+    private $index; 
+    
+    /**
+     * Database column name
+     * @var string
+     */
+    private $name;
     
     /**
      * 
-     * @var Database column name
+     * @var bool
      */
-    private $name;
+    private $isIndex = true;
+    /**
+     * 
+     * @var bool
+     */
+    private $isName = true;
     
     /**
      * 
@@ -32,9 +44,15 @@ class Col{
     
     /**
      * 
-     * @var ActualRow
+     * @var Explore
      */
-    private $actualRow;
+    private $explore;
+    
+    
+    /**
+     * coming soon
+     */
+    private $reference;
     
     /**
      * 
@@ -42,10 +60,10 @@ class Col{
      */
     public function __construct($options){
 
-        $this->name = isset($options['name'])?:$options['name'];
-        $this->col = isset($options['index'])?:$options['index'];
+        $this->name = (isset($options['name']))?$options['name']:$this->isName = FALSE;
+        $this->index = (isset($options['index']))?$options['index']:$this->isIndex = FALSE;
         
-        if(!($this->name || $this->col)){
+        if(!($this->isName || $this->isIndex)){
             throw new \Exception('Name oder Index müssen bekannt sein!');
         }
         
@@ -55,7 +73,7 @@ class Col{
         
         if(isset($options['method'])){
             if(is_callable($options['method'])){
-                
+                $this->addMethod('callback', ['Callback'=>$options['method']]);
             } else{
                 $this->addMethod($options['method'][0], $options['method'][1]);
             }
@@ -64,19 +82,12 @@ class Col{
     
     /**
      * 
-     * @return boolean
-     */
-    public function hasColumnName(){
-        return (bool) $this->name;
-    }
-    /**
-     * 
      * @param string $name
      * @param array $options
      */
     public function addCondition($name, $options){
         $condition = PluginFactory::conditionFactory($name, $options);
-        $condition->setActualRow($this->actualRow);
+        $condition->setCol($this);
         $this->attachCondition($condition);
         
     }
@@ -88,7 +99,7 @@ class Col{
      */
     public function addMethod($name, $options){
         $method = PluginFactory::methodFactory($name, $options);
-        $method->setActualRow($this->actualRow);
+        $method->setCol($this);
         $this->attachMethod($method);
     }
     
@@ -97,7 +108,6 @@ class Col{
      * @param AbstractCondition $condition
      */
     public function attachCondition(AbstractCondition $condition){
-        $condition->setIndex($this->col);
         $this->conditions[] = $condition;
     }
     
@@ -106,15 +116,14 @@ class Col{
      * @param AbstractMethod $method
      */
     public function attachMethod(AbstractMethod $method){
-        $method->setIndex($this->col);
         $this->methods[] = $method;
     }
     /**
      * 
-     * @param \ActualRow $row
+     * @param Explore $explore
      */
-    public function setActualRow($row){
-        $this->actualRow = $row;
+    public function setExplore(Explore $explore){
+        $this->explore = $explore;
     }
     
     /**
@@ -133,15 +142,39 @@ class Col{
     
     /**
      * 
-     * @return array
      */
     public function result(){
         
-        $arr = array();
-        foreach ($this->methods as $method){
-            $this->actualRow->offsetSet($this->col, $method->getValue());
+        $actualRow = $this->getActualRow();
+    
+        if(empty($this->methods)){
+            $actualRow->offsetSet($this->name, $actualRow->offsetGet($this->index));
+            
+        } else {
+            
+            foreach ($this->methods as $method){
+                
+                $value = $method->getValue();
+                if($this->isName){
+                    $actualRow->offsetSet($this->name, $value);
+                }
+                if($this->isIndex){
+                    $actualRow->offsetSet($this->index, $value);
+                }
+            }
         }
-        
-        return $this->actualRow->offsetGet($this->col);
+    }
+    /**
+     * @return ActualRow
+     */
+    public function getActualRow(){
+        return $this->explore->getActualRow();
+    }
+    
+    /**
+     * @return int
+     */
+    public function getIndex(){
+        return $this->index;
     }
 }

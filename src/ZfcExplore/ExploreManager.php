@@ -106,7 +106,6 @@ class ExploreManager implements EventManagerAwareInterface, AdapterAwareInterfac
 
                 foreach ($table->getOption()->getReferences() as $ref){
                     $refTable = $this->getTable($ref->getTable());
-
                 }
             }
             $table->executeMode();

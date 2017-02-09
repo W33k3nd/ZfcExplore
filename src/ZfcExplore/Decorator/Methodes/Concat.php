@@ -8,6 +8,10 @@ class Concat extends AbstractMethod{
 	 */
 	private $indizes = array(); 
 	
+	/**
+	 * 
+	 * @var unknown
+	 */
 	private $placeholder = '';
 	
 	public function __construct($options){
@@ -25,11 +29,12 @@ class Concat extends AbstractMethod{
 	
 	public function getValue(){
 		
-		$values = array($this->actualRow[$this->index]);
+		$values = array($this->getActualRow()[$this->getIndex()]);
 
 		foreach ($this->indizes as $key)
-			$values[] = $this->actualRow[$key];
+			$values[] = $this->getActualRow()[$key];
 		
 		return implode($this->placeholder, $values);
 	}
+	
 }

@@ -8,7 +8,7 @@ class ConditionPluginManager extends AbstractPluginManager{
 	
 	
 	protected $invokableClasses = array(
-		'equal' => 'krCsvTable\PluginManager\Conditions\Equal'
+		'equal' => 'krCsvTable\Decorator\Conditions\Equal'
 	);
 	
 	/**
@@ -24,7 +24,7 @@ class ConditionPluginManager extends AbstractPluginManager{
 	 */
 	public function validatePlugin($plugin) {
 		// TODO Auto-generated method stub
-		if($plugin instanceof \ZfcExplore\PluginManager\Conditions\ConditionInterface )
+		if($plugin instanceof \ZfcExplore\Decorator\Conditions\ConditionInterface )
 				return;
 		
 		throw new \InvalidArgumentException(sprintf('Plugin of type %s is invalid, must implement ConditionInterface', (is_object($plugin) ? get_class($plugin) : gettype($plugin))));
