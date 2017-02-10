@@ -17,7 +17,12 @@ use Zend\Db\Adapter\AdapterAwareInterface;
 
 class ExploreManager implements EventManagerAwareInterface, AdapterAwareInterface
 {
-
+    
+    /**
+     * 
+     * @var ExploreManager
+     */
+    private static $exploreManager; 
     /**
      * @var EventManagerInterface
      */
@@ -37,12 +42,22 @@ class ExploreManager implements EventManagerAwareInterface, AdapterAwareInterfac
     /**
      *
      */
-    public function __construct(){
+    private function __construct(){
 
         $this->clear();
-
     }
 
+    /**
+     * 
+     * @return \ZfcExplore\ExploreManager
+     */
+    public static function getExploreManager(){
+        
+        if(!isset(self::$exploreManager)){
+            self::$exploreManager = new self();
+        }
+        return self::$exploreManager;
+    }
     /**
      * Set the event manager instance used by this context
      *

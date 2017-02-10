@@ -10,8 +10,9 @@ namespace ZfcExplore;
 
 
 use Zend\Stdlib\AbstractOptions;
+use Zend\Db\TableGateway\AbstractTableGateway;
 
-class Reference extends AbstractOptions
+class Reference
 {
     
     /**
@@ -42,7 +43,7 @@ class Reference extends AbstractOptions
     
     /**
      * 
-     * @var string
+     * @var AbstractTableGateway
      */
     private $table;
     
@@ -51,9 +52,16 @@ class Reference extends AbstractOptions
      * @var int
      */
     private $type = self::REFERENCE_TYPE_TABLE;
+    
+    
+    
+    public function __construct(AbstractTableGateway $table){
+        
+        $this->table = $table;
+    }
 
     /**
-     * @return mixed
+     * @return AbstractTableGateway
      */
     public function getTable(){
         return $this->table;
@@ -63,7 +71,7 @@ class Reference extends AbstractOptions
      * 
      * @param unknown $table
      */
-    public function setTable($table){
+    public function setTable(AbstractTableGateway $table){
         $this->table = $table;
     }
 

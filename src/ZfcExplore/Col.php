@@ -50,7 +50,7 @@ class Col{
     
     
     /**
-     * coming soon
+     * @var Reference
      */
     private $reference;
     
@@ -68,14 +68,22 @@ class Col{
         }
         
         if(isset($options['condition'])){
-            $this->addCondition($options['condition'][0], $options['condition'][1]);
+            $this->addCondition($options['condition']['name'], $options['condition']['options']);
         }
         
         if(isset($options['method'])){
-            if(is_callable($options['method'])){
-                $this->addMethod('callback', ['Callback'=>$options['method']]);
-            } else{
-                $this->addMethod($options['method'][0], $options['method'][1]);
+            $options['methods'] = [];
+            $options['methods'][] = $options['method'];
+            unset($options['method']);
+        }
+        
+        if(isset($options['methods'])){
+            foreach ($options['methods'] as $method){
+                if(is_callable($method)){
+                    $this->addMethod('callback', ['callback'=>$method]);
+                } else{
+                    $this->addMethod($method['name'], $method['options']);
+                }
             }
         }
     }
@@ -91,7 +99,7 @@ class Col{
         $this->attachCondition($condition);
         
     }
-    
+
     /**
      * 
      * @param string $name
@@ -127,6 +135,36 @@ class Col{
     }
     
     /**
+     * @return ActualRow
+     */
+    public function getActualRow(){
+        return $this->explore->getActualRow();
+    }
+    
+    /**
+     * @return int
+     */
+    public function getIndex(){
+        return $this->index;
+    }
+    
+    /**
+     * 
+     * @param Reference $reference
+     */
+    public function setReferece(Reference $reference){
+        $this->reference = $reference;
+    }
+    
+    /**
+     * 
+     * @return \ZfcExplore\Reference
+     */
+    public function getReference(){
+        return $this->reference;
+    }
+    
+    /**
      * 
      * @return boolean
      */
@@ -151,7 +189,6 @@ class Col{
             $actualRow->offsetSet($this->name, $actualRow->offsetGet($this->index));
             
         } else {
-            
             foreach ($this->methods as $method){
                 
                 $value = $method->getValue();
@@ -163,18 +200,5 @@ class Col{
                 }
             }
         }
-    }
-    /**
-     * @return ActualRow
-     */
-    public function getActualRow(){
-        return $this->explore->getActualRow();
-    }
-    
-    /**
-     * @return int
-     */
-    public function getIndex(){
-        return $this->index;
     }
 }

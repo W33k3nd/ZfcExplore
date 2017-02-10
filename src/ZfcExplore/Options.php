@@ -47,10 +47,10 @@ class Options extends AbstractOptions{
 	protected $path;
 
 	/**
-	 * @see Entspricht des maximalen Indexwertes. Vergleichswert für jede CSV Spalte; Eine spalte muss mindestens $csvQuantity breit sein.
+	 * @see Entspricht des maximalen Indexwertes. Vergleichswert für jede Dateispalte; Eine spalte muss mindestens $oreQuantity breit sein.
 	 * @var int
 	 */
-	protected $importQuantity = 0;
+	protected $oreQuantity = 0;
 
 	/**
 	 * @see Entspricht der Anzahl der Namensfelder.
@@ -61,7 +61,7 @@ class Options extends AbstractOptions{
 	/**
 	 * @var int
 	 */
-	protected $csvRowCount = 0;
+	protected $oreRowCount = 0;
 
 	/**
 	 * @var int
@@ -76,7 +76,7 @@ class Options extends AbstractOptions{
 
 	/**
      * @todo why clousur?
-	 * @var string | Clousur | Where = null
+	 * @var string | Clousur | Where | null
 	 */
 	protected $where;
 
@@ -92,10 +92,17 @@ class Options extends AbstractOptions{
 	protected $enclosure = '\\';
 
 	/**
+	 * @deprecated
 	 * removed the difference between import data and db data.
 	 * @var bool
 	 */
 	protected $trans_clean = false;
+	
+	/**
+	 * removed the difference between import data and db data.
+	 * @var bool
+	 */
+	protected $heel_clear = false;
 	
 
 	/**
@@ -121,7 +128,7 @@ class Options extends AbstractOptions{
 		$this->columns = $options['columns'];
 		$this->conditions =  array_column($options['columns'], 'condition', 'index');
 		$this->methods = array_column($options['columns'], 'method', 'index');
-		$this->importQuantity = max(array_column($options['columns'], 'index'))+1;
+		$this->oreQuantity = max(array_column($options['columns'], 'index'))+1;
 		$this->dbQuantity = count(array_column($options['columns'], 'name'));
 		$references = array_column($options['columns'], 'reference');
 		
@@ -178,10 +185,18 @@ class Options extends AbstractOptions{
 	}
 
 	/**
+	 * @deprecated
 	 * @return the $importQuantity
 	 */
 	public function getCsvQuantity() {
-		return $this->importQuantity;
+		return $this->oreQuantity;
+	}
+	
+	/**
+	 * @return the $importQuantity
+	 */
+	public function getOreQuantity() {
+	    return $this->oreQuantity;
 	}
 
 	/**
@@ -244,6 +259,7 @@ class Options extends AbstractOptions{
 	}
 
 	/**
+	 * @deprecated
 	 * @return the $transClean
 	 */
 	public function getTransClean() {
@@ -251,10 +267,25 @@ class Options extends AbstractOptions{
 	}
 
 	/**
+	 * @deprecated
 	 * @param boolean $transClean
 	 */
 	public function setTransClean($transClean) {
 		$this->trans_clean = $transClean;
+	}
+	
+	/**
+	 * @return the $heel_clear
+	 */
+	public function getHeelCear() {
+	    return $this->heel_clear;
+	}
+	
+	/**
+	 * @param boolean $clear
+	 */
+	public function setHeelCear($clear) {
+	    $this->heel_clear = $clear;
 	}
 
 	/**
@@ -277,10 +308,10 @@ class Options extends AbstractOptions{
 		return $this->enclosure;
 	}
 	/**
-	 * @param number $csvRowCount
+	 * @param number $oreRowCount
 	 */
-	public function setCsvRowCount($csvRowCount) {
-		$this->csvRowCount = intval($csvRowCount);
+	public function setOreRowCount($count) {
+		$this->oreRowCount = intval($count);
 	}
 
 	/**
@@ -295,7 +326,7 @@ class Options extends AbstractOptions{
 	 * @return number
 	 */
 	public function getRowCount(){
-		return $this->csvRowCount;
+		return $this->oreRowCount;
 	}
 
 

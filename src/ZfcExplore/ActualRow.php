@@ -10,8 +10,8 @@ class ActualRow extends ArrayObject{
      * 
      * @param array $columns
      */
-    public function __construct(array $columns){
-        $this->columns = $columns;
+    public function __construct(array $columns = []){
+        $this->setColumns($columns);
         parent::__construct();
     }
     /**
@@ -20,6 +20,14 @@ class ActualRow extends ArrayObject{
      */
     public function setActualRow($row){
         $this->storage = $row;
+    }
+    
+    /**
+     * 
+     * @param array $columns
+     */
+    public function setColumns(array $columns){
+        $this->columns = $columns;
     }
     
     /**

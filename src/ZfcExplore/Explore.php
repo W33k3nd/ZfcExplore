@@ -30,7 +30,7 @@ class Explore extends AbstractTableGateway{
 	/**
 	 * @var bool
 	 */
-	private $isCsvContent = false;
+	private $isOreContent = false;
 
 	/**
 	 * @var bool
@@ -40,7 +40,7 @@ class Explore extends AbstractTableGateway{
 	/**
 	 * @var array
 	 */
-	private $csvContent = array();
+	private $oreContent = array();
 
 	/**
 	 * @var array
@@ -66,6 +66,7 @@ class Explore extends AbstractTableGateway{
 	
 	/**
 	 * Wurde dieser Explore schon ausgeführt?
+	 * @var bool
 	 */
 	private $done = FALSE;
 
@@ -88,20 +89,20 @@ class Explore extends AbstractTableGateway{
 		}
 
 		$this->adapter = $adapter;
+		$this->actualRow = new ActualRow();
 		$this->table = $this->option->getTable();
 		$this->setColumns($this->option->getColumns());
-		$this->actualRow = new ActualRow($this->columns);
 		    
 		parent::initialize();
 	}
 
 	/**
-	 * create CsvContent
-	 * The csv table content should create only on execute process.
+	 * create OreContent
+	 * The table content should create only on execute process.
 	 */
-	private function createCsvContent(){
+	private function createOreContent(){
 
-		if($this->isCsvContent)
+		if($this->isOreContent)
 			return;
 
 		if(!file_exists($this->option->getPath())){
@@ -115,7 +116,7 @@ class Explore extends AbstractTableGateway{
 
 			$this->actualRow->setActualRow($row);
 			
-			if($this->actualRow->count() < $this->option->getCsvQuantity()){
+			if($this->actualRow->count() < $this->option->getOreQuantity()){
 // 				$this->getEventManager()->trigger(self::READFAIL, $this, array('row'=> $row, 'exception'=>new \Exception('Not equal Columns quantity! ('.count($row).'|'.$this->quantity.')')));
 				continue;
 			}
@@ -131,21 +132,29 @@ class Explore extends AbstractTableGateway{
 			    $object->result();
 			}
 
-			$this->csvContent[] = $this->actualRow->getColumnsData();
+			$this->oreContent[] = $this->actualRow->getColumnsData();
 		}
 
 		fclose($handle);
-		$this->option->setCsvRowCount(count($this->csvContent));
-		$this->isCsvContent = true;
+		$this->option->setOreRowCount(count($this->oreContent));
+		$this->isOreContent = true;
 
+	}
+	
+	/**
+	 * (non-PHPdoc)
+	 * @see \Zend\Db\TableGateway\AbstractTableGateway::select()
+	 */
+	public function select($where = null){
+	    
+	    $this->createDbContent();
+	    return $this->getDbContent();
 	}
 
 	/**
-	 * Create Db Content if necessary
+	 * Create Db Content
 	 */
 	private function createDbContent(){
-		//@todo: Fehleranfällig
-		//$result = $this->select($this->options->getWhere());
 
 		if($this->isDbContent)
 			return ;
@@ -155,8 +164,15 @@ class Explore extends AbstractTableGateway{
 			$item = $order;
 		}, 'ASC');
 
-		$select = $this->sql->select()->columns($this->columns)->where($this->option->getWhere())->order($id);
+		$select = $this->sql->select();
+		$select->columns($this->columns);
+		
+		if($this->option->getWhere()){
+		    $select->where($this->option->getWhere());
+		}
+    	$select->order($id);
 		$result = $this->selectWith($select);
+		
 		$this->dbContent = $result->toArray();
 		$this->option->setDbRowCount(count($this->dbContent));
 		$this->isDbContent = true;
@@ -168,7 +184,7 @@ class Explore extends AbstractTableGateway{
 	public function executeMode(){
 
 		//Create CSV content
-		$this->createCsvContent();
+		$this->createOreContent();
 		//than create DB Content
 		$this->createDbContent();
 
@@ -187,11 +203,36 @@ class Explore extends AbstractTableGateway{
 
 		if($this->option->getTransclean()){
 
-			$temp = $this->csvContent;
-			$this->csvContent = $this->dbContent;
+			$temp = $this->oreContent;
+			$this->oreContent = $this->dbContent;
 			$this->deleteData();
-			$this->csvContent = $temp;
+			$this->oreContent = $temp;
 		}
+	}
+	
+	/**
+	 * (non-PHPdoc)
+	 * @see \Zend\Db\TableGateway\AbstractTableGateway::insert()
+	 */
+	public function insert($set){
+	    
+	    if($this->option->getMode() == self::INSERTMODE &&
+	       !$this->done){
+	        
+	        $this->createOreContent();
+	        $this->createDbContent();
+    	    $this->insertData();
+    	    
+    	    if($this->option->getHeelCear()){
+    	    
+    	        $temp = $this->oreContent;
+    	        $this->oreContent = $this->dbContent;
+    	        $this->deleteData();
+    	        $this->oreContent = $temp;
+    	    }
+    	    
+    	    $this->done = true;
+	    }
 	}
 	/**
 	 * @see tries to insert each row if they doesn't exists
@@ -202,25 +243,25 @@ class Explore extends AbstractTableGateway{
 		$ids = $this->option->getId();
 
 		//compare both tables and remove equal rows
-		foreach ($this->csvContent as $csvKey => $csvRow){
+		foreach ($this->oreContent as $oreKey => $oreRow){
 			$this->featureSet->apply('singular', array());
 			foreach($this->dbContent as $dbKey => $dbRow){
 
 				foreach ($ids as $id){
 
-					if($csvRow[$id] != $dbRow[$id])
+					if($oreRow[$id] != $dbRow[$id])
 						continue 2;
 				}
-				unset($this->csvContent[$csvKey]);
+				unset($this->oreContent[$oreKey]);
 				unset($this->dbContent[$dbKey]);
 			}
 		}
 
-		foreach ($this->csvContent as $csvKey => $row){
+		foreach ($this->oreContent as $oreKey => $row){
 			try{
 
-				$result = $this->insert($row);
-				unset($this->csvContent[$csvKey]);
+				$result = parent::insert($row);
+				unset($this->oreContent[$oreKey]);
 			}
 			catch(\Exception $e){
 				$this->featureSet->apply('failInsert', array($row, $e));
@@ -231,6 +272,31 @@ class Explore extends AbstractTableGateway{
 	}
 
 	/**
+	 * (non-PHPdoc)
+	 * @see \Zend\Db\TableGateway\AbstractTableGateway::update()
+	 */
+	public function update($set, $where = null, array $joins = null){
+	    
+	    if($this->option->getMode() == self::UPDATEMODE &&
+	        !$this->done){
+	         
+	        $this->createOreContent();
+	        $this->createDbContent();
+	        $this->updateData();
+	        
+	        if($this->option->getHeelCear()){
+	        
+	            $temp = $this->oreContent;
+	            $this->oreContent = $this->dbContent;
+	            $this->deleteData();
+	            $this->oreContent = $temp;
+	        }
+	        
+	        $this->done = true;
+	    }
+	    
+	}
+	/**
 	 * @see update each row with the equal id
 	 */
 	private function updateData(){
@@ -240,19 +306,19 @@ class Explore extends AbstractTableGateway{
 		$ids = $this->option->getId();
 		$notFoundInDb = array();
 
-		foreach ($this->csvContent as $csvKey => $csvRow){
+		foreach ($this->oreContent as $oreKey => $oreRow){
 			$this->featureSet->apply('singular', array());
 			foreach($this->dbContent as $dbKey => $dbRow){
 
 				foreach ($ids as $id){
 
-					if($csvRow[$id] != $dbRow[$id])
+					if($oreRow[$id] != $dbRow[$id])
 						continue 2;
 				}
 
 				$equal = TRUE;
 				foreach ($cols as $col){
-					if($csvRow[$col] != $dbRow[$col]){
+					if($oreRow[$col] != $dbRow[$col]){
 						$equal = FALSE;
 						break;
 					}
@@ -261,24 +327,24 @@ class Explore extends AbstractTableGateway{
 				unset($this->dbContent[$dbKey]);
 
 				if($equal)
-					unset($this->csvContent[$csvKey]);
+					unset($this->oreContent[$oreKey]);
 
 				continue 2;
 
 			}
-			$notFoundInDb[] = $csvRow;
-			unset($this->csvContent[$csvKey]);
+			$notFoundInDb[] = $oreRow;
+			unset($this->oreContent[$oreKey]);
 
 		}
 
 		$ids = array_flip($ids);
 		$cols = array_flip($cols);
-		foreach ($this->csvContent as $key => $row){
+		foreach ($this->oreContent as $key => $row){
 			try{
 				$id = array_intersect_key($row, $ids);
 				$col = array_intersect_key($row, $cols);
-				$result = $this->update($col, $id);
-				unset($this->csvContent[$key]);
+				$result = parent::update($col, $id);
+				unset($this->oreContent[$key]);
 			}
 			catch (\Exception $e){
 				$this->featureSet->apply('failUpdate', array($row, $e));
@@ -286,11 +352,22 @@ class Explore extends AbstractTableGateway{
 		}
 
 		foreach ($notFoundInDb as $row){
-			$this->csvContent[] = $row;
+			$this->oreContent[] = $row;
 		}
 		$this->insertData();
 	}
 
+	public function delete($where){
+	    
+	    if($this->option->getMode() == self::DELETEMODE &&
+	        !$this->done){
+	    
+	        $this->createOreContent();
+	        $this->createDbContent();
+	        $this->deleteData();
+	        $this->done = true;
+	    }
+	}
 	/**
 	 * TODO: testen
 	 */
@@ -300,10 +377,10 @@ class Explore extends AbstractTableGateway{
 		$notFoundInDb = array();
 
 		try{
-			foreach ($this->csvContent as $key => $row){
+			foreach ($this->oreContent as $key => $row){
 
 				$this->delete($row);
-				unset($this->csvContent[$key]);
+				unset($this->oreContent[$key]);
 			}
 		}
 		catch (\Exception $e){
@@ -340,6 +417,7 @@ class Explore extends AbstractTableGateway{
 	        
     	    if(!in_array($name,  $this->columns)){
     	        $this->columns[] = $name;
+    	        $this->actualRow->setColumns($this->columns);
     	    }
 	    }
         
@@ -347,13 +425,6 @@ class Explore extends AbstractTableGateway{
 	    $col->setExplore($this);
         $this->columnsObjects[] = $col;
 	}
-	
-    /**
-     * @return bool
-     */
-	public function hasReferences(){
-	    return (bool) count($this->option->getReferences());
-    }
 
     /**
      * @return array
@@ -369,24 +440,14 @@ class Explore extends AbstractTableGateway{
     public function getActualRow(){
         return $this->actualRow;
     }
-	/**
-	 *
-	 * @deprecated Wird durch Plugin ersetzt.
-	 * @param string $str
-	 * @return string
-	 */
-	private function convert($str){
-
-			return $str;
-	}
 
 	/**
-	 * @return ActualRow
+	 * @return array
 	 */
-	public function getCsvContent(){
+	public function getOreContent(){
 
-		$this->createCsvContent();
-		return $this->csvContent;
+		$this->createOreContent();
+		return $this->oreContent;
 	}
 
 	/**

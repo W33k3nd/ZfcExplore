@@ -42,9 +42,6 @@ class ExploreManagerService implements FactoryInterface{
      */
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        /**
-         * TODO Validate
-         */
 
         //Database Adapter
         $db = $container->get('Zend\Db\Adapter\Adapter');
