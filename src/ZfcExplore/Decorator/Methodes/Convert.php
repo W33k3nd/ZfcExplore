@@ -51,7 +51,7 @@ class Convert extends AbstractMethod{
      * @see \ZfcExplore\Decorator\Methodes\MethodInterface::getValue()
      */
     public function getValue(){
-        return $this->wrapper->convert($this->getActualRow()[$this->getIndex()]);
+        return $this->wrapper->convert($this->getActualRow()[$this->getName()]);
     }
 
     /**

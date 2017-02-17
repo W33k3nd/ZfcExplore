@@ -5,8 +5,8 @@
  */
 namespace ZfcExplore;
 
-use Zend\Db\Adapter\AdapterInterface;
 use Zend\Db\TableGateway\AbstractTableGateway;
+use Zend\Db\ResultSet\ResultSet;
 
 
 class Explore extends AbstractTableGateway{
@@ -28,6 +28,12 @@ class Explore extends AbstractTableGateway{
 
 
 	/**
+	 * 
+	 * @var ExploreManager;
+	 */
+	private $exploremanager;
+	
+	/**
 	 * @var bool
 	 */
 	private $isOreContent = false;
@@ -43,55 +49,42 @@ class Explore extends AbstractTableGateway{
 	private $oreContent = array();
 
 	/**
-	 * @var array
+	 * @var ResultSet
 	 */
 	private $dbContent = array();
 
 	/**
-	 * @var Options
+	 * @var TableMetadata
 	 */
-	private $option;
-	
-	/**
-	 * List of all given columns.
-	 * @var array<Col>
-	 */
-	private $columnsObjects = array();
+	private $metaData;
 	
 	/**
 	 * 
 	 * @var ActualRow
 	 */
 	private $actualRow;
-	
-	/**
-	 * Wurde dieser Explore schon ausgeführt?
-	 * @var bool
-	 */
-	private $done = FALSE;
-
 
     /**
      * Explore constructor.
-     * @param AdapterInterface $adapter
-     * @param Options $option
+     * @param ExploreManager $em
+     * @param TableMetadata $option
      * @throws \Exception
      */
-	public function __construct(AdapterInterface $adapter, Options $option){
+	public function __construct(TableMetadata $metadata){
 
-		$this->option = $option;
+		$this->metaData = $metadata;
 
-		if(!method_exists($this, ($this->option->getMode()))){
+		if(!method_exists($this, ($this->metaData->getMode()))){
 			throw new \Exception('Options mode isn\'t callable!');
 		}
-		elseif ($this->option->getMode() == self::UPDATEMODE && !$this->option->getId()){
+		elseif ($this->metaData->getMode() == self::UPDATEMODE && !$this->metaData->getId()){
 			throw new \Exception("Update Mode required id option");
 		}
 
-		$this->adapter = $adapter;
-		$this->actualRow = new ActualRow();
-		$this->table = $this->option->getTable();
-		$this->setColumns($this->option->getColumns());
+		$this->adapter = $this->metaData->getDbAdapter();
+		$this->table = $this->metaData->getTable();
+		$this->actualRow = $this->metaData->getActualRow();
+		$this->columns = $this->metaData->getColumns();
 		    
 		parent::initialize();
 	}
@@ -105,77 +98,93 @@ class Explore extends AbstractTableGateway{
 		if($this->isOreContent)
 			return;
 
-		if(!file_exists($this->option->getPath())){
+		if(!file_exists($this->metaData->getPath())){
 			$this->featureSet->apply(self::FILENOTFOUND, array());
 			return;
 		}
 
-		$handle = fopen($this->option->getPath(), 'r');
-
-		while (($row = fgetcsv($handle, 0, $this->option->getDelimiter(), $this->option->getEnclosure()))){
+		$handle = fopen($this->metaData->getPath(), 'r');
+        $this->metaData->initializeReferences();
+		
+		while (($row = fgetcsv($handle, 0, $this->metaData->getDelimiter(), $this->metaData->getEnclosure()))){
 
 			$this->actualRow->setActualRow($row);
 			
-			if($this->actualRow->count() < $this->option->getOreQuantity()){
+			if($this->actualRow->count() < $this->metaData->getOreQuantity()){
 // 				$this->getEventManager()->trigger(self::READFAIL, $this, array('row'=> $row, 'exception'=>new \Exception('Not equal Columns quantity! ('.count($row).'|'.$this->quantity.')')));
 				continue;
 			}
-			
-			foreach ($this->columnsObjects as $object){
+			/* @var $object \ZfcExplore\Col */
+			foreach ($this->metaData->getColumnsObject() as $object){
 			    
 			    if(!$object->validCondition()){
 			        continue 2;
 			    }
 			}
 			
-			foreach ($this->columnsObjects as $object){
+			foreach ($this->metaData->getColumnsObject() as $object){
 			    $object->result();
 			}
 
-			$this->oreContent[] = $this->actualRow->getColumnsData();
+			$this->oreContent[] = $this->actualRow->getColumnData();
 		}
+		
 
 		fclose($handle);
-		$this->option->setOreRowCount(count($this->oreContent));
+		$this->metaData->setOreRowCount(count($this->oreContent));
 		$this->isOreContent = true;
 
 	}
 	
 	/**
-	 * (non-PHPdoc)
-	 * @see \Zend\Db\TableGateway\AbstractTableGateway::select()
-	 */
-	public function select($where = null){
-	    
-	    $this->createDbContent();
-	    return $this->getDbContent();
-	}
-
-	/**
 	 * Create Db Content
 	 */
 	private function createDbContent(){
-
-		if($this->isDbContent)
-			return ;
-
-		$id = array_flip($this->option->getId());
-		array_walk($id, function(&$item, $key, $order){
-			$item = $order;
-		}, 'ASC');
-
-		$select = $this->sql->select();
-		$select->columns($this->columns);
-		
-		if($this->option->getWhere()){
-		    $select->where($this->option->getWhere());
-		}
-    	$select->order($id);
-		$result = $this->selectWith($select);
-		
-		$this->dbContent = $result->toArray();
-		$this->option->setDbRowCount(count($this->dbContent));
-		$this->isDbContent = true;
+	
+	    if($this->isDbContent)
+	        return ;
+	
+	    $id = array_flip($this->metaData->getId());
+	    array_walk($id, function(&$item, $key, $order){
+	        $item = $order;
+	    }, 'ASC');
+	
+	        $select = $this->sql->select();
+	        $select->columns($this->columns);
+	
+	        if($this->metaData->getWhere()){
+	            $select->where($this->metaData->getWhere());
+	        }
+	        $select->order($id);
+	        $this->dbContent = $this->selectWith($select);
+	        //TODO: überprüfe ob die db Daten gebuffert werden sollen!
+	        $this->dbContent->buffer();
+	        $this->metaData->setDbRowCount($this->dbContent->count());
+	        $this->isDbContent = $this->dbContent->valid();
+	}
+	
+	/**
+	 * (non-PHPdoc)
+	 * @see \Zend\Db\TableGateway\AbstractTableGateway::select()
+	 * @return ResultSet
+	 */
+	public function select($where = null){
+	    
+	    if(!$this->isDone()){
+	        
+	        switch ($this->getOptions()->getMode()){
+	            case self::UPDATEMODE:
+	                $this->updateData();
+	                break;
+	            case self::INSERTMODE:
+	                $this->insertData();
+	                break;
+	            case self::DELETEMODE:
+	                $this->deleteData();
+	                break;
+	        }
+	    }
+	    return $this->getDbContent();
 	}
 
 	/**
@@ -183,13 +192,13 @@ class Explore extends AbstractTableGateway{
 	 */
 	public function executeMode(){
 
-		//Create CSV content
+		//Create file content
 		$this->createOreContent();
-		//than create DB Content
+		//than create database content
 		$this->createDbContent();
 
 		$this->featureSet->apply('singular', array());
-		switch ($this->getOptions()->getMode()){
+		switch ($this->metaData->getMode()){
 			case self::UPDATEMODE:
 				$this->updateData();
 				break;
@@ -201,7 +210,8 @@ class Explore extends AbstractTableGateway{
 				break;
 		}
 
-		if($this->option->getTransclean()){
+		$this->dbContent->rewind();
+		if($this->metaData->getHeelCear()){
 
 			$temp = $this->oreContent;
 			$this->oreContent = $this->dbContent;
@@ -216,22 +226,20 @@ class Explore extends AbstractTableGateway{
 	 */
 	public function insert($set){
 	    
-	    if($this->option->getMode() == self::INSERTMODE &&
+	    if($this->metaData->getMode() == self::INSERTMODE &&
 	       !$this->done){
 	        
 	        $this->createOreContent();
 	        $this->createDbContent();
     	    $this->insertData();
     	    
-    	    if($this->option->getHeelCear()){
+    	    if($this->metaData->getHeelCear()){
     	    
     	        $temp = $this->oreContent;
     	        $this->oreContent = $this->dbContent;
     	        $this->deleteData();
     	        $this->oreContent = $temp;
     	    }
-    	    
-    	    $this->done = true;
 	    }
 	}
 	/**
@@ -240,7 +248,7 @@ class Explore extends AbstractTableGateway{
 	 */
 	private function insertData(){
 
-		$ids = $this->option->getId();
+		$ids = $this->metaData->getId();
 
 		//compare both tables and remove equal rows
 		foreach ($this->oreContent as $oreKey => $oreRow){
@@ -277,22 +285,20 @@ class Explore extends AbstractTableGateway{
 	 */
 	public function update($set, $where = null, array $joins = null){
 	    
-	    if($this->option->getMode() == self::UPDATEMODE &&
+	    if($this->metaData->getMode() == self::UPDATEMODE &&
 	        !$this->done){
 	         
 	        $this->createOreContent();
 	        $this->createDbContent();
 	        $this->updateData();
 	        
-	        if($this->option->getHeelCear()){
+	        if($this->metaData->getHeelCear()){
 	        
 	            $temp = $this->oreContent;
 	            $this->oreContent = $this->dbContent;
 	            $this->deleteData();
 	            $this->oreContent = $temp;
 	        }
-	        
-	        $this->done = true;
 	    }
 	    
 	}
@@ -302,13 +308,15 @@ class Explore extends AbstractTableGateway{
 	private function updateData(){
 
 		//compare both tables and remove equal rows (UpdateMode)
-		$cols = array_diff($this->columns, $this->option->getId());
-		$ids = $this->option->getId();
+		$cols = array_diff($this->columns, $this->metaData->getId());
+		$ids = $this->metaData->getId();
 		$notFoundInDb = array();
 
+		$data = $this->dbContent->toArray();
+		
 		foreach ($this->oreContent as $oreKey => $oreRow){
 			$this->featureSet->apply('singular', array());
-			foreach($this->dbContent as $dbKey => $dbRow){
+			foreach($data as $dbKey => $dbRow){
 
 				foreach ($ids as $id){
 
@@ -324,7 +332,7 @@ class Explore extends AbstractTableGateway{
 					}
 				}
 				//Remove founded db row
-				unset($this->dbContent[$dbKey]);
+				unset($data[$dbKey]);
 
 				if($equal)
 					unset($this->oreContent[$oreKey]);
@@ -336,7 +344,7 @@ class Explore extends AbstractTableGateway{
 			unset($this->oreContent[$oreKey]);
 
 		}
-
+		
 		$ids = array_flip($ids);
 		$cols = array_flip($cols);
 		foreach ($this->oreContent as $key => $row){
@@ -359,13 +367,12 @@ class Explore extends AbstractTableGateway{
 
 	public function delete($where){
 	    
-	    if($this->option->getMode() == self::DELETEMODE &&
+	    if($this->metaData->getMode() == self::DELETEMODE &&
 	        !$this->done){
 	    
 	        $this->createOreContent();
 	        $this->createDbContent();
 	        $this->deleteData();
-	        $this->done = true;
 	    }
 	}
 	/**
@@ -373,7 +380,7 @@ class Explore extends AbstractTableGateway{
 	 */
 	private function deleteData(){
 
-		$ids = $this->option->getId();
+		$ids = $this->metaData->getId();
 		$notFoundInDb = array();
 
 		try{
@@ -390,56 +397,46 @@ class Explore extends AbstractTableGateway{
 // 		$this->featureSet->apply('finish', array());
 	}
 
-	/**
-	 * 
-	 * @param array $columns
-	 */
-	public function setColumns($columns){
+// 	/**
+// 	 * @deprecated
+// 	 * @param array $columns
+// 	 */
+// 	public function setColumns($columns){
 	    
-	    foreach ($columns as $column){
-	        if(!isset($column['name']) || empty($column['name'])){
-	            continue;
-             }
-             $this->addColumn($column['name'], $column);
-	    }
+// 	    foreach ($columns as $column){
+// 	        if(!isset($column['name']) || empty($column['name'])){
+// 	            continue;
+//              }
+//              $this->addColumn($column['name'], $column);
+// 	    }
 	    
-	}
+// 	}
 	
-	/**
-	 * 
-	 * @param string $name
-	 * @param array $options
-	 */
-	public function addColumn($name = null, $option){
+// 	/**
+// 	 * @deprecated
+// 	 * @param string $name
+// 	 * @param array $option
+// 	 */
+// 	public function addColumn($name = null, $option){
 	    
-	    if($name != null){
-    	    $option['name'] = $name;
+// 	    if($name !== null){
+//     	    $option['name'] = $name;
 	        
-    	    if(!in_array($name,  $this->columns)){
-    	        $this->columns[] = $name;
-    	        $this->actualRow->setColumns($this->columns);
-    	    }
-	    }
+//     	    if(!in_array($name,  $this->columns)){
+//     	        $this->columns[] = $name;
+//     	        $this->actualRow->setColumns($this->columns);
+//     	    }
+// 	    }
         
-	    $col = new Col($option);
-	    $col->setExplore($this);
-        $this->columnsObjects[] = $col;
-	}
-
-    /**
-     * @return array
-     */
-    public function getReferences(){
-	    return $this->option->getReferences();
-    }
-    
-    /**
-     * 
-     * @return array
-     */
-    public function getActualRow(){
-        return $this->actualRow;
-    }
+// 	    $col = new Col($option);
+// 	    $col->setExplore($this);
+	    
+// 	    if(isset($option['reference'])){
+// 	        $reference = new Reference($this->exploremanager->getTables(), $option['reference']);
+// 	    }
+	    
+//         $this->columnsObjects[] = $col;
+// 	}
 
 	/**
 	 * @return array
@@ -460,26 +457,17 @@ class Explore extends AbstractTableGateway{
 		return $this->dbContent;
 	}
 
-	/**
-	 *
-	 * @return Option
-	 */
-	public function getOptions(){
-
-		return $this->getOption();
-	}
-
     /**
      * @return Option
      */
-	public function getOption(){
-	    return $this->option;
+	public function getMetadata(){
+	    return $this->metaData;
     }
     
     /**
      * @return boolean
      */
     public function isDone(){
-        return $this->done;
+        return $this->isDbContent && $this->isOreContent;
     }
 }

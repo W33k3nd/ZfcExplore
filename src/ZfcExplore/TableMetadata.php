@@ -2,9 +2,10 @@
 
 namespace ZfcExplore;
 
-use Zend\Db\Sql\Where;
 use Zend\Stdlib\AbstractOptions;
-class Options extends AbstractOptions{
+use Zend\Db\Adapter\AdapterInterface;
+use ZfcExplore\Reference\AbstractReference;
+class TableMetadata extends AbstractOptions{
 
 	/**
 	 * Turn off strict options mode
@@ -12,30 +13,21 @@ class Options extends AbstractOptions{
 	protected $__strictMode__ = false;
 
 	/**
+	 * 
+	 * @var ExploreManager
+	 */
+	private $em;
+	
+	/**
 	 * @var string
 	 */
 	protected $table;
-
-	/**
-	 * @var columns
-	 */
-	protected $columns = array();
-
-	/**
-	 * @var array
-	 */
-	protected $conditions = array();
 	
 	/**
-	 * var array
+	 * @var array <T:Col>
 	 */
-	protected $methods = array();
+	protected $columnsObject = array();
 	
-    /**
-     * @var array
-     */
-	protected $references = array();
-
 	/**
 	 * @var array
 	 */
@@ -76,7 +68,7 @@ class Options extends AbstractOptions{
 
 	/**
      * @todo why clousur?
-	 * @var string | Clousur | Where | null
+	 * @var string | clousur |  \Zend\Db\Sql\Where | null
 	 */
 	protected $where;
 
@@ -92,17 +84,16 @@ class Options extends AbstractOptions{
 	protected $enclosure = '\\';
 
 	/**
-	 * @deprecated
-	 * removed the difference between import data and db data.
-	 * @var bool
-	 */
-	protected $trans_clean = false;
-	
-	/**
 	 * removed the difference between import data and db data.
 	 * @var bool
 	 */
 	protected $heel_clear = false;
+	
+	/**
+	 * 
+	 * @var ActualRow
+	 */
+	protected $actualRow; 
 	
 
 	/**
@@ -123,17 +114,28 @@ class Options extends AbstractOptions{
 	 *
 	 * @param array $options
 	 */
-	public function __construct($options){
+	public function __construct(ExploreManager $em, $options){
 
-		$this->columns = $options['columns'];
-		$this->conditions =  array_column($options['columns'], 'condition', 'index');
-		$this->methods = array_column($options['columns'], 'method', 'index');
-		$this->oreQuantity = max(array_column($options['columns'], 'index'))+1;
-		$this->dbQuantity = count(array_column($options['columns'], 'name'));
-		$references = array_column($options['columns'], 'reference');
+	    $this->em = $em;
+		$this->actualRow = new ActualRow();
+		$columns = $options['columns'];
+		$this->oreQuantity = max(array_column($columns, 'index'))+1;
+		$this->dbQuantity = count(array_column($columns, 'name'));
+        
+		foreach ($columns as $column){
 		
-		foreach ($references as $reference){
-		    $this->references[] = new Reference($reference);
+		    $col = new Col($this, $column);
+		    $index = $col->getIndex();
+		    if($col->getName()){
+		        $this->actualRow->addColumn($col->getName(), $col->getIndex());
+		        $index = $col->getName();
+		        
+// 		        if(isset($column['reference'])){
+// 		            $type = (isset($column['reference']['type']))?$column['reference']['type']:'\ZfcExplore\Reference\IdentReference';
+// 		            $this->references[$col->getName()] = new $type($this, $column['reference']);
+// 		        }
+		    }
+		    $this->columnsObject[$index] = $col;
 		}
 		
 		parent::__construct($options);
@@ -143,7 +145,7 @@ class Options extends AbstractOptions{
 	 * @return array
 	 */
 	public function getColumns() {
-		return $this->columns;
+		return $this->actualRow->getColumns();
 	}
 
 	/**
@@ -161,12 +163,12 @@ class Options extends AbstractOptions{
 	    return $this->methods;
 	    
 	}
-
+    
     /**
-     * @return array
+     * 
+     * @return array <T:AbstractReference>
      */
-    public function getReferences()
-    {
+    public function getreferences(){
         return $this->references;
     }
 
@@ -257,22 +259,6 @@ class Options extends AbstractOptions{
 	public function setMode($mode) {
 		$this->mode = $mode;
 	}
-
-	/**
-	 * @deprecated
-	 * @return the $transClean
-	 */
-	public function getTransClean() {
-		return $this->trans_clean;
-	}
-
-	/**
-	 * @deprecated
-	 * @param boolean $transClean
-	 */
-	public function setTransClean($transClean) {
-		$this->trans_clean = $transClean;
-	}
 	
 	/**
 	 * @return the $heel_clear
@@ -329,6 +315,43 @@ class Options extends AbstractOptions{
 		return $this->oreRowCount;
 	}
 
-
-
+	/**
+	 * @return AdapterInterface
+	 */
+    public function getDbAdapter(){
+        return $this->em->getDbAdapater();
+    }
+	
+    /**
+     * 
+     * @return \ZfcExplore\ActualRow
+     */
+    public function getActualRow(){
+        return $this->actualRow;
+    }
+    
+    /**
+     * 
+     * @return array <T:Col>
+     */
+    public function getColumnsObject(){
+        return $this->columnsObject;
+    }
+    
+    /**
+     * in Explore auslagern
+     */
+    public function initializeReferences(){
+        
+        /* @var $object \ZfcExplore\Col */
+        foreach ($this->columnsObject as $object){
+            if(!$object->hasReference()){
+                continue;
+            }
+            
+            $result = $this->em->getTable($object->getReference()->getTable())->select();
+            $object->getReference()->setReferenceData($result);
+        }
+    }
+    
 }

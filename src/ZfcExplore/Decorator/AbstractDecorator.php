@@ -4,7 +4,6 @@ namespace ZfcExplore\Decorator;
 
 use Zend\Stdlib\AbstractOptions;
 use ZfcExplore\Col;
-use ZfcExplore\ActualRow;
 abstract class AbstractDecorator extends AbstractOptions{
     
     /**
@@ -28,7 +27,15 @@ abstract class AbstractDecorator extends AbstractOptions{
     }
     
     /**
-     * @return ActualRow
+     * 
+     * @return string
+     */
+    public function getName(){
+        return $this->col->getName();
+    }
+    
+    /**
+     * @return array
      */
     public function getActualRow(){
         return $this->col->getActualRow();

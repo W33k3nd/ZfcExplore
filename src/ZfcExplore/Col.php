@@ -5,30 +5,28 @@ namespace ZfcExplore;
 use ZfcExplore\Decorator\Conditions\AbstractCondition;
 use ZfcExplore\Decorator\PluginFactory;
 use ZfcExplore\Decorator\Methodes\AbstractMethod;
+use ZfcExplore\Reference\AbstractReference;
+use ZfcExplore\Reference\ReferenceInterface;
 
 class Col{
     
     /**
-     * @var int
+     * File columnnumber. Starts with 0
+     * @var int |null
      */
     private $index; 
     
     /**
      * Database column name
-     * @var string
+     * @var string | null
      */
     private $name;
     
     /**
      * 
-     * @var bool
+     * @var TableMetadata
      */
-    private $isIndex = true;
-    /**
-     * 
-     * @var bool
-     */
-    private $isName = true;
+    private $metadata;
     
     /**
      * 
@@ -48,26 +46,33 @@ class Col{
      */
     private $explore;
     
-    
     /**
-     * @var Reference
+     * @var AbstractReference
      */
     private $reference;
     
     /**
      * 
+     * @var bool
+     */
+    private $valid = FALSE;
+    
+    /**
+     * 
      * @param array $options
      */
-    public function __construct($options){
+    public function __construct(TableMetadata $metadata, $options){
 
-        $this->name = (isset($options['name']))?$options['name']:$this->isName = FALSE;
-        $this->index = (isset($options['index']))?$options['index']:$this->isIndex = FALSE;
+        $this->metadata = $metadata;
+        $this->name = (isset($options['name']))?$options['name']: FALSE;
+        $this->index = (isset($options['index']))?$options['index']:FALSE;
         
-        if(!($this->isName || $this->isIndex)){
+        if(!($this->name || $this->index)){
             throw new \Exception('Name oder Index müssen bekannt sein!');
         }
         
-        if(isset($options['condition'])){
+        //@TODO: Validiere| Condition brauchen den index auf jeden Fall
+        if(isset($options['condition']) && $this->index !== FALSE){
             $this->addCondition($options['condition']['name'], $options['condition']['options']);
         }
         
@@ -77,7 +82,8 @@ class Col{
             unset($options['method']);
         }
         
-        if(isset($options['methods'])){
+        //@todo: Validiere| Methoden brauchen den column (name) auf jeden Fall
+        if(isset($options['methods']) && $this->name){
             foreach ($options['methods'] as $method){
                 if(is_callable($method)){
                     $this->addMethod('callback', ['callback'=>$method]);
@@ -85,6 +91,16 @@ class Col{
                     $this->addMethod($method['name'], $method['options']);
                 }
             }
+        }
+        
+        if(isset($options['reference']) && $this->name){
+            $class = '\ZfcExplore\Reference\IdentReference';
+            if(isset($options['reference']['type'])){
+                $class = $options['reference']['type'];
+                unset($options['reference']['type']);
+            }
+            //@todo Factory
+            $this->reference = new $class($options['reference']);
         }
     }
     
@@ -126,19 +142,12 @@ class Col{
     public function attachMethod(AbstractMethod $method){
         $this->methods[] = $method;
     }
-    /**
-     * 
-     * @param Explore $explore
-     */
-    public function setExplore(Explore $explore){
-        $this->explore = $explore;
-    }
     
     /**
-     * @return ActualRow
+     * @return array
      */
     public function getActualRow(){
-        return $this->explore->getActualRow();
+        return $this->metadata->getActualRow()->getData();
     }
     
     /**
@@ -150,32 +159,42 @@ class Col{
     
     /**
      * 
-     * @param Reference $reference
+     * @return string
      */
-    public function setReferece(Reference $reference){
-        $this->reference = $reference;
+    public function getName(){
+        return $this->name;
+    }
+    
+    /**
+     * @return boolean
+     */
+    public function hasReference(){
+        return isset($this->reference);
     }
     
     /**
      * 
-     * @return \ZfcExplore\Reference
+     * @return \ZfcExplore\Reference\AbstractReference
      */
     public function getReference(){
         return $this->reference;
     }
     
+    
     /**
-     * 
+     * Validate all index conditions.
      * @return boolean
      */
     public function validCondition(){
         
+        $this->valid = true;
         foreach ($this->conditions as $condition){
             if(!$condition->isValid){
-                return false;
+                $this->valid = false;
+                break;
             }
         }
-        return true;
+        return $this->valid;
     }
     
     /**
@@ -183,22 +202,22 @@ class Col{
      */
     public function result(){
         
-        $actualRow = $this->getActualRow();
-    
-        if(empty($this->methods)){
-            $actualRow->offsetSet($this->name, $actualRow->offsetGet($this->index));
-            
-        } else {
-            foreach ($this->methods as $method){
-                
-                $value = $method->getValue();
-                if($this->isName){
-                    $actualRow->offsetSet($this->name, $value);
-                }
-                if($this->isIndex){
-                    $actualRow->offsetSet($this->index, $value);
-                }
+        if(!$this->valid){
+            return;
+        }
+        $actualRow = $this->metadata->getActualRow();
+        foreach ($this->methods as $method){
+            $value = $method->getValue();
+            $actualRow->setColumn($this->name, $value);
+
+        }
+        
+        if($this->hasReference()){
+            $ref = $this->reference->refer($actualRow);
+            if($ref !== false){
+                $actualRow->setColumn($this->name, $ref);
             }
+            
         }
     }
 }

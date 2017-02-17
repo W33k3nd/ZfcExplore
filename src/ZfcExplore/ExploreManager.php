@@ -18,18 +18,14 @@ use Zend\Db\Adapter\AdapterAwareInterface;
 class ExploreManager implements EventManagerAwareInterface, AdapterAwareInterface
 {
     
-    /**
-     * 
-     * @var ExploreManager
-     */
-    private static $exploreManager; 
+
     /**
      * @var EventManagerInterface
      */
     protected $eventManager;
 
     /**
-     * @var \Zend\Stdlib\ArrayObject
+     * @var TablesManager
      */
     private $tables;
 
@@ -40,24 +36,13 @@ class ExploreManager implements EventManagerAwareInterface, AdapterAwareInterfac
     private $adapter;
 
     /**
-     *
+     * init
      */
-    private function __construct(){
+    public function __construct(){
 
         $this->clear();
     }
 
-    /**
-     * 
-     * @return \ZfcExplore\ExploreManager
-     */
-    public static function getExploreManager(){
-        
-        if(!isset(self::$exploreManager)){
-            self::$exploreManager = new self();
-        }
-        return self::$exploreManager;
-    }
     /**
      * Set the event manager instance used by this context
      *
@@ -117,12 +102,6 @@ class ExploreManager implements EventManagerAwareInterface, AdapterAwareInterfac
         /* @var $table Explore */
         foreach ($tables as $table){
 
-            if($table->hasReferences()){
-
-                foreach ($table->getOption()->getReferences() as $ref){
-                    $refTable = $this->getTable($ref->getTable());
-                }
-            }
             $table->executeMode();
         }
     }
@@ -158,12 +137,12 @@ class ExploreManager implements EventManagerAwareInterface, AdapterAwareInterfac
     public function attachTable($name, $table){
 
         if(is_array($table)){
-            $options = new Options($table);
-            $table = new Explore($this->adapter, $options);
+            $options = new TableMetadata($this, $table);
+            $table = new Explore($options);
         }
 
         if($table instanceof Explore){
-            $this->tables->offsetSet($name, $table);
+            $this->tables->addTable($name, $table);
         }
 
     }
@@ -177,6 +156,14 @@ class ExploreManager implements EventManagerAwareInterface, AdapterAwareInterfac
         $this->adapter = $adapter;
         return $this->adapter;
     }
+    
+    /**
+     * 
+     * @return \Zend\Db\Adapter\Adapter
+     */
+    public function getDbAdapater(){
+        return $this->adapter;
+    }
 
     /**
      * @param $name
@@ -185,11 +172,15 @@ class ExploreManager implements EventManagerAwareInterface, AdapterAwareInterfac
      */
     public function getTable($name){
 
-        if(!$this->tables->offsetExists($name)){
-            throw new \Exception(sprintf('Tablename %s not found', $name));
-        }
-
-        return $this->tables[$name];
+        return $this->tables->getTable($name);
+    }
+    
+    /**
+     * 
+     * @return \ZfcExplore\ActualTables
+     */
+    public function getTables(){
+        return $this->tables;
     }
 
     /**
@@ -197,6 +188,6 @@ class ExploreManager implements EventManagerAwareInterface, AdapterAwareInterfac
      */
     public function clear(){
 
-        $this->tables = new ArrayObject(array(), \ArrayObject::ARRAY_AS_PROPS);
+        $this->tables = new TablesManager();
     }
 }
