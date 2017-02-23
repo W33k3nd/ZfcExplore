@@ -49,10 +49,10 @@ class Explore extends AbstractTableGateway{
 	private $oreContent = array();
 
 	/**
-	 * @var ResultSet
+	 * @var array
 	 */
 	private $dbContent = array();
-
+	
 	/**
 	 * @var TableMetadata
 	 */
@@ -75,10 +75,10 @@ class Explore extends AbstractTableGateway{
 		$this->metaData = $metadata;
 
 		if(!method_exists($this, ($this->metaData->getMode()))){
-			throw new \Exception('Options mode isn\'t callable!');
+			throw new \InvalidArgumentException('Options mode isn\'t callable!');
 		}
 		elseif ($this->metaData->getMode() == self::UPDATEMODE && !$this->metaData->getId()){
-			throw new \Exception("Update Mode required id option");
+			throw new \Exception('Update Mode required id option');
 		}
 
 		$this->adapter = $this->metaData->getDbAdapter();
@@ -149,18 +149,19 @@ class Explore extends AbstractTableGateway{
 	        $item = $order;
 	    }, 'ASC');
 	
-	        $select = $this->sql->select();
-	        $select->columns($this->columns);
-	
-	        if($this->metaData->getWhere()){
-	            $select->where($this->metaData->getWhere());
-	        }
-	        $select->order($id);
-	        $this->dbContent = $this->selectWith($select);
-	        //TODO: überprüfe ob die db Daten gebuffert werden sollen!
-	        $this->dbContent->buffer();
-	        $this->metaData->setDbRowCount($this->dbContent->count());
-	        $this->isDbContent = $this->dbContent->valid();
+        $select = $this->sql->select();
+        $select->columns($this->columns);
+
+        //@todo where kann auch eine Closure sein
+        if($this->metaData->getWhere()){
+            $select->where($this->metaData->getWhere());
+        }
+        $select->order($id);
+        $result = $this->selectWith($select);
+        //TODO: Notwendig?
+        $this->metaData->setDbRowCount($result->count());
+        $this->isDbContent = $result->valid();
+        $this->dbContent = $result->toArray();
 	}
 	
 	/**
@@ -184,7 +185,10 @@ class Explore extends AbstractTableGateway{
 	                break;
 	        }
 	    }
-	    return $this->getDbContent();
+	    if($this->metaData->getWhere()){
+    	    $where = $this->metaData->getWhere();
+	    }
+	    return parent::select($where);
 	}
 
 	/**
@@ -210,7 +214,7 @@ class Explore extends AbstractTableGateway{
 				break;
 		}
 
-		$this->dbContent->rewind();
+// 		$this->dbContent->rewind();
 		if($this->metaData->getHeelCear()){
 
 			$temp = $this->oreContent;
@@ -227,7 +231,7 @@ class Explore extends AbstractTableGateway{
 	public function insert($set){
 	    
 	    if($this->metaData->getMode() == self::INSERTMODE &&
-	       !$this->done){
+	       !$this->isDone()){
 	        
 	        $this->createOreContent();
 	        $this->createDbContent();
@@ -267,7 +271,6 @@ class Explore extends AbstractTableGateway{
 
 		foreach ($this->oreContent as $oreKey => $row){
 			try{
-
 				$result = parent::insert($row);
 				unset($this->oreContent[$oreKey]);
 			}
@@ -286,7 +289,7 @@ class Explore extends AbstractTableGateway{
 	public function update($set, $where = null, array $joins = null){
 	    
 	    if($this->metaData->getMode() == self::UPDATEMODE &&
-	        !$this->done){
+	        !$this->isDone()){
 	         
 	        $this->createOreContent();
 	        $this->createDbContent();
@@ -308,15 +311,13 @@ class Explore extends AbstractTableGateway{
 	private function updateData(){
 
 		//compare both tables and remove equal rows (UpdateMode)
-		$cols = array_diff($this->columns, $this->metaData->getId());
+		$cols = array_diff($this->actualRow->getIntersectColumns(), $this->metaData->getId());
 		$ids = $this->metaData->getId();
 		$notFoundInDb = array();
 
-		$data = $this->dbContent->toArray();
-		
 		foreach ($this->oreContent as $oreKey => $oreRow){
 			$this->featureSet->apply('singular', array());
-			foreach($data as $dbKey => $dbRow){
+			foreach($this->dbContent as $dbKey => $dbRow){
 
 				foreach ($ids as $id){
 
@@ -332,7 +333,7 @@ class Explore extends AbstractTableGateway{
 					}
 				}
 				//Remove founded db row
-				unset($data[$dbKey]);
+				unset($this->dbContent[$dbKey]);
 
 				if($equal)
 					unset($this->oreContent[$oreKey]);
@@ -368,13 +369,14 @@ class Explore extends AbstractTableGateway{
 	public function delete($where){
 	    
 	    if($this->metaData->getMode() == self::DELETEMODE &&
-	        !$this->done){
+	        !$this->isDone()){
 	    
 	        $this->createOreContent();
 	        $this->createDbContent();
 	        $this->deleteData();
 	    }
 	}
+	
 	/**
 	 * TODO: testen
 	 */

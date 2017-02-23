@@ -7,10 +7,10 @@ class ActualRow{
      * Current column data from index.
      * @var array
      */
-    private $columns = [];
+    private $intersect = [];
     
     /**
-     * Map columnname with index
+     * Map column name with index
      * @var array
      */
     private $map = [];
@@ -19,18 +19,18 @@ class ActualRow{
      * Actual rows with index
      * @var array
      */
-    private $currentRow;
+    private $currentRow = [];
     
     /**
      * 
      * @param array $input
      */
     public function setActualRow($row){
-        
+
         foreach ($this->map as $column => $index){
         
             if(isset($row[$index])){
-                $this->columns[$column] = $row[$index];
+                $this->intersect[$column] = $row[$index];
             }
         }
         $this->currentRow = $row;
@@ -39,21 +39,26 @@ class ActualRow{
     /**
      * The first parameter discribes the table column name and the second the index of the file
      * @param string $name
-     * @param int $index
+     * @param int|null $index
      */
     public function addColumn($name, $index){
         $this->map[$name] = $index;
+        
+        if($index !== NULL){
+            $this->setColumn($name, NULL);
+        }
     }
     
     /**
+     * Prepared data
      * @return array
      */
     public function getColumnData(){
-        return $this->columns;
+        return $this->intersect;
     }
     
     /**
-     * 
+     * Raw data
      * @return array
      */
     public function getIndexData(){
@@ -61,28 +66,33 @@ class ActualRow{
     }
     
     /**
-     * All data
+     * Return intersect Columns, which only has a index.
      * @return array
      */
-    public function getData(){
-        return array_merge($this->currentRow, $this->columns);
+    public function getIntersectColumns(){
+        return array_keys($this->intersect);
     }
     
     /**
-     * 
+     * This map shows the name index relation. 
      * @return array
      */
-    public function getColumns(){
-        return array_keys($this->map);
+    public function getMap(){
+        return $this->map;
     }
     
     /**
      * 
      * @param string $column
+     * @throws \Exception
      * @return multitype: scalar
      */
     public function getColumn($column){
-        return $this->columns[$column];
+        
+        if(!(isset($this->intersect[$column]) || array_key_exists($column, $this->intersect))){
+            throw new \Exception(sprintf('No name [%s] in intersect data.', $column));
+        }
+        return $this->intersect[$column];
     }
     
     /**
@@ -91,21 +101,19 @@ class ActualRow{
      * @param multitype $value
      */
     public function setColumn($column, $value){
-        
-        if(array_key_exists($column, $this->columns)){
-            $this->columns[$column] = $value;
-        }
+        $this->intersect[$column] = $value;
     }
     
     /**
      * 
      * @param int $index
+     * @throws \Exception
      * @return multitype: scalar
      */
     public function getIndex($index){
         
-        if(!isset($this->currentRow[$index])){
-            throw new \Exception(sprintf('No index column [%s]', $index));
+        if(!(isset($this->currentRow[$index]) || array_key_exists($index, $this->currentRow))){
+            throw new \Exception(sprintf('No index [%s] in current data.', $index));
         }
         return $this->currentRow[$index];
     }

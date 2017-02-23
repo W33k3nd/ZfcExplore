@@ -1,6 +1,6 @@
 <?php
 
-namespace OavTest;
+namespace ZfcExploreTest;
 
 use Zend\Loader\AutoloaderFactory;
 use Zend\Mvc\Service\ServiceManagerConfig;
@@ -35,8 +35,7 @@ class Bootstrap
                 'module_paths' => $zf2ModulePaths,
             ),
             'modules' => array(
-            	'BjyAuthorize',
-                'Oav'	
+            	'ZfcExplore',
             )
         );
 

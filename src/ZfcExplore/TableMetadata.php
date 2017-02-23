@@ -4,7 +4,6 @@ namespace ZfcExplore;
 
 use Zend\Stdlib\AbstractOptions;
 use Zend\Db\Adapter\AdapterInterface;
-use ZfcExplore\Reference\AbstractReference;
 class TableMetadata extends AbstractOptions{
 
 	/**
@@ -39,7 +38,7 @@ class TableMetadata extends AbstractOptions{
 	protected $path;
 
 	/**
-	 * @see Entspricht des maximalen Indexwertes. Vergleichswert für jede Dateispalte; Eine spalte muss mindestens $oreQuantity breit sein.
+	 * @see Entspricht des maximalen Indexwertes. Vergleichswert für jede Reihe. Eine Reihe muss mindestens $oreQuantity Daten enthalten.
 	 * @var int
 	 */
 	protected $oreQuantity = 0;
@@ -118,25 +117,19 @@ class TableMetadata extends AbstractOptions{
 
 	    $this->em = $em;
 		$this->actualRow = new ActualRow();
+		
 		$columns = $options['columns'];
-		$this->oreQuantity = max(array_column($columns, 'index'))+1;
-		$this->dbQuantity = count(array_column($columns, 'name'));
-        
 		foreach ($columns as $column){
 		
 		    $col = new Col($this, $column);
-		    $index = $col->getIndex();
 		    if($col->getName()){
 		        $this->actualRow->addColumn($col->getName(), $col->getIndex());
-		        $index = $col->getName();
-		        
-// 		        if(isset($column['reference'])){
-// 		            $type = (isset($column['reference']['type']))?$column['reference']['type']:'\ZfcExplore\Reference\IdentReference';
-// 		            $this->references[$col->getName()] = new $type($this, $column['reference']);
-// 		        }
 		    }
-		    $this->columnsObject[$index] = $col;
+		    $this->columnsObject[] = $col;
 		}
+		
+		$this->oreQuantity = max($this->actualRow->getMap())+1;
+		$this->dbQuantity =  count($this->actualRow->getMap());
 		
 		parent::__construct($options);
 	}
@@ -145,32 +138,8 @@ class TableMetadata extends AbstractOptions{
 	 * @return array
 	 */
 	public function getColumns() {
-		return $this->actualRow->getColumns();
+		return array_keys($this->actualRow->getMap());
 	}
-
-	/**
-	 * @return array
-	 */
-	public function getConditions() {
-		return $this->conditions;
-	}
-	
-	/**
-	 * 
-	 * @return array
-	 */
-	public function getMethods(){
-	    return $this->methods;
-	    
-	}
-    
-    /**
-     * 
-     * @return array <T:AbstractReference>
-     */
-    public function getreferences(){
-        return $this->references;
-    }
 
 	/**
 	 * @return the $id
@@ -213,13 +182,6 @@ class TableMetadata extends AbstractOptions{
 	 */
 	public function getWhere() {
 		return $this->where;
-	}
-
-	/**
-	 * @param multitype: $conditions
-	 */
-	public function setConditions($conditions) {
-		$this->conditions = $conditions;
 	}
 
     /**

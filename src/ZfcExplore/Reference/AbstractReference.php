@@ -4,7 +4,6 @@ namespace ZfcExplore\Reference;
 
 use Zend\Stdlib\AbstractOptions;
 use Zend\Db\ResultSet\AbstractResultSet;
-use Zend\Db\ResultSet\ResultSet;
 abstract class AbstractReference extends AbstractOptions implements ReferenceInterface{
     
     
@@ -22,7 +21,7 @@ abstract class AbstractReference extends AbstractOptions implements ReferenceInt
     
     /**
      * 
-     * @var ResultSet
+     * @var array
      */
     protected $referenceData;
     
@@ -70,7 +69,7 @@ abstract class AbstractReference extends AbstractOptions implements ReferenceInt
         if($referenceData->count() != 0){
             $this->hasData = TRUE;
         }
-        $this->referenceData = $referenceData;
+        $this->referenceData = $referenceData->toArray();
     }
     
 	/**

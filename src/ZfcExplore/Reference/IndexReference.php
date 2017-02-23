@@ -24,7 +24,7 @@ class IndexReference extends AbstractReference{
         }
         
         $match = false;
-        foreach ($this->referenceData as $row){
+        foreach ($this->referenceData as $key => $row){
             
             foreach ($cur as $name => $value){
                 
@@ -33,6 +33,10 @@ class IndexReference extends AbstractReference{
                 }
             }
             $match = $row[$this->referenceColumn];
+            if(self::ONETOONE == $this->getRelation()){
+                unset($this->referenceData[$key]);
+            }
+            
             break;
         }
         
@@ -66,18 +70,18 @@ class IndexReference extends AbstractReference{
             return ;
         }
         
-        $current = $this->referenceData->current();
+        $current = current($this->referenceData);
         
         if(is_object($current)){
             $current = get_object_vars($current);
-        } elseif (is_array($current)){
-            $current = array_keys($current);
         }
+//         } elseif (is_array($current)){
+//             $current = array_keys($current);
+//         }
         
         $index = $this->index;
         $index[-1] = $this->referenceColumn;
         foreach ($index as $key){
-            // + performance
             if(isset($current[$key]) || array_key_exists($key, $current)){
                 continue;
             }

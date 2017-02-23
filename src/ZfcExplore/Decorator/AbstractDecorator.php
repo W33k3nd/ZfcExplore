@@ -33,11 +33,4 @@ abstract class AbstractDecorator extends AbstractOptions{
     public function getName(){
         return $this->col->getName();
     }
-    
-    /**
-     * @return array
-     */
-    public function getActualRow(){
-        return $this->col->getActualRow();
-    }
 }

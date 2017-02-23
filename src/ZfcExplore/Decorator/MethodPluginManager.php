@@ -14,14 +14,16 @@ class MethodPluginManager extends AbstractPluginManager{
     protected $invokableClasses = array(
         'concat' => \ZfcExplore\Decorator\Methodes\Concat::class,
         'convert' => \ZfcExplore\Decorator\Methodes\Convert::class,
-        'callback' => \ZfcExplore\Decorator\Methodes\Callback::class
+        'callback' => \ZfcExplore\Decorator\Methodes\Callback::class,
+        'stringtolower' => \ZfcExplore\Decorator\Methodes\StringToLower::class
     );
 
 
 	protected $factories = array(
 		\ZfcExplore\Decorator\Methodes\Concat::class => InvokableFactory::class,
 	    \ZfcExplore\Decorator\Methodes\Convert::class => InvokableFactory::class,
-	    \ZfcExplore\Decorator\Methodes\Callback::class => InvokableFactory::class
+	    \ZfcExplore\Decorator\Methodes\Callback::class => InvokableFactory::class,
+	    \ZfcExplore\Decorator\Methodes\StringToLower::class => InvokableFactory::class
 	);
 	
 	/**

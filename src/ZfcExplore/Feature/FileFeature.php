@@ -1,6 +1,6 @@
 <?php
 
-namespace krCsvTable\Feature;
+namespace ZfcExplore\Feature;
 
 use Zend\Db\TableGateway\Feature\AbstractFeature;
 class FileFeatureFeature extends AbstractFeature{

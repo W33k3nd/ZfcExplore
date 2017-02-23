@@ -6,7 +6,6 @@ use ZfcExplore\Decorator\Conditions\AbstractCondition;
 use ZfcExplore\Decorator\PluginFactory;
 use ZfcExplore\Decorator\Methodes\AbstractMethod;
 use ZfcExplore\Reference\AbstractReference;
-use ZfcExplore\Reference\ReferenceInterface;
 
 class Col{
     
@@ -64,8 +63,8 @@ class Col{
     public function __construct(TableMetadata $metadata, $options){
 
         $this->metadata = $metadata;
-        $this->name = (isset($options['name']))?$options['name']: FALSE;
-        $this->index = (isset($options['index']))?$options['index']:FALSE;
+        $this->name = (isset($options['name']))?$options['name']: NULL;
+        $this->index = (isset($options['index']))?$options['index']:NULL;
         
         if(!($this->name || $this->index)){
             throw new \Exception('Name oder Index müssen bekannt sein!');
@@ -88,7 +87,8 @@ class Col{
                 if(is_callable($method)){
                     $this->addMethod('callback', ['callback'=>$method]);
                 } else{
-                    $this->addMethod($method['name'], $method['options']);
+                    $options = isset($method['options'])?$method['options']:null;
+                    $this->addMethod($method['name'], $options);
                 }
             }
         }
@@ -146,10 +146,36 @@ class Col{
     /**
      * @return array
      */
-    public function getActualRow(){
-        return $this->metadata->getActualRow()->getData();
+    public function getActualData(){
+        $ac =  $this->metadata->getActualRow();
+        return array_merge($ac->getIndexData(), $ac->getColumnData());
     }
     
+    /**
+     * 
+     * @param string | NULL $name
+     * @return mixed
+     */
+    public function getActualName($name = NULL){
+        
+        if($name === Null){
+            $name = $this->name;
+        }
+        return $this->metadata->getActualRow()->getColumn($name);
+    }
+    
+    /**
+     * 
+     * @param int | NULL $index
+     * @return mixed
+     */
+    public function getActualIndex($index = NULL){
+        
+        if($index === Null){
+            $index = $this->index;
+        }
+        return $this->metadata->getActualRow()->getIndex($index);
+    }
     /**
      * @return int
      */

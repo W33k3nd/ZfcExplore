@@ -10,17 +10,17 @@ class Concat extends AbstractMethod{
 	
 	/**
 	 * 
-	 * @var unknown
+	 * @var string
 	 */
 	private $placeholder = '';
 	
 	public function __construct($options){
 		
-		if(is_array($options['index']))
+		if(is_array($options['index'])){
 			$this->indizes = $options['index'];
-		else 
+		} else { 
 			$this->indizes[] = $options['index'];
-		
+		}
 		
 		if(array_key_exists('placeholder', $options))
 			$this->placeholder = $options['placeholder'];
@@ -29,10 +29,10 @@ class Concat extends AbstractMethod{
 	
 	public function getValue(){
 		
-		$values = array($this->getActualRow()[$this->getIndex()]);
+		$values = array($this->col->getActualIndex($this->getIndex()));
 
 		foreach ($this->indizes as $key)
-			$values[] = $this->getActualRow()[$key];
+			$values[] = $this->col->getActualIndex($key);
 		
 		return implode($this->placeholder, $values);
 	}

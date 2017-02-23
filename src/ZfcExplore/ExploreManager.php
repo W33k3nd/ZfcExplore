@@ -1,6 +1,5 @@
 <?php
 /**
- * Created by PhpStorm.
  * User: ralf
  * Date: 03.01.17
  * Time: 15:06
@@ -8,7 +7,6 @@
 
 namespace ZfcExplore;
 
-use Zend\Stdlib\ArrayObject;
 use Zend\EventManager\EventManagerInterface;
 use Zend\EventManager\EventManager;
 use Zend\EventManager\EventManagerAwareInterface;

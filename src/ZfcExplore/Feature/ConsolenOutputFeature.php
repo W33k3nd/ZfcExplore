@@ -1,11 +1,11 @@
 <?php
 
-namespace krCsvTable\Feature;
+namespace ZfcExplore\Feature;
 
 use Zend\Console\Adapter\AbstractAdapter;
 use Zend\Db\TableGateway\Feature\AbstractFeature;
 use Zend\Console\Console;
-use krCsvTable\CsvTable\CsvOptions;
+use ZfcExplore\TableMetadata;
 use Zend\Console\ColorInterface;
 use Zend\Db\TableGateway\AbstractTableGateway;
 
@@ -98,7 +98,7 @@ class ConsolenOutputFeature extends AbstractFeature{
 	public function setTableGateway(AbstractTableGateway $tableGateway)
 	{
 		parent::setTableGateway($tableGateway);
-		$this->path  = '...'.substr($tableGateway->getOptions()->getPath(), -20);
+		$this->path  = '...'.substr($tableGateway->getMetadata()->getPath(), -20);
 	}
 	
 	/**
@@ -106,8 +106,8 @@ class ConsolenOutputFeature extends AbstractFeature{
 	 */
 	private function consoleView(){
 		
-		$cur = count($this->tableGateway->getCsvContent());
-		$rowCount = $this->tableGateway->getOptions()->getRowCount();
+		$cur = count($this->tableGateway->getOreContent());
+		$rowCount = $this->tableGateway->getMetadata()->getRowCount();
 		$out = sprintf($this->out, $this->getTime()->format('H:i:s'), $this->path, $rowCount, 100/($rowCount?$rowCount:1)*(($rowCount?$rowCount:1)-$cur));
 		$this->console->write($out);
 	}

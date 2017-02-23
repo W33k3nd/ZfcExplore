@@ -14,7 +14,7 @@ class Callback extends AbstractMethod{
      * @see \ZfcExplore\Decorator\Methodes\MethodInterface::getValue()
      */
     public function getValue(){
-        return call_user_func($this->callback, $this->getActualRow());
+        return call_user_func($this->callback, $this->col->getActualData());
     }
     
     /**
